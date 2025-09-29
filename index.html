@@ -16,15 +16,13 @@
     </style>
   <style>
     .population-grid {
-      /* This is now controlled by max-width on the element and responsive columns */
       display: grid;
     }
     @media (max-width: 640px) {
       .population-grid { grid-template-columns: repeat(20, minmax(0, 1fr)) !important; }
     }
     @media (min-width: 641px) {
-       /* Use a consistent column count on larger screens to maintain the desired look */
-      .population-grid { grid-template-columns: repeat(20, minmax(0, 1fr)) !important; }
+      .population-grid { grid-template-columns: repeat(40, minmax(0, 1fr)) !important; }
     }
   </style>
 </head>
@@ -150,7 +148,7 @@
 
         function createIconArray(affected, total, colour, label) {
             var displayTotal = Math.min(total, 1000);
-            var html = '<div class="grid population-grid gap-1 max-w-xs">';
+            var html = '<div class="grid population-grid gap-1 max-w-2xl">';
             var affectedCount = (total > 0) ? Math.round((affected / total) * displayTotal) : 0;
 
             for (var i = 0; i < displayTotal; i++) {
@@ -251,8 +249,8 @@
         function createFaganNomogram(preTestProb, lr, postTestProb) {
             var svgWidth = 600;
             var svgHeight = 400;
-            var padding = { top: 40, right: 60, bottom: 40, left: 60 };
-            var axisX = { pre: padding.left, lr: padding.left + 220, post: padding.left + 480 };
+            var padding = { top: 50, right: 60, bottom: 40, left: 60 };
+            var axisX = { pre: padding.left + 40, lr: svgWidth / 2, post: svgWidth - padding.right - 40 };
             var plotHeight = svgHeight - padding.top - padding.bottom;
 
             var probTicks = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 30, 50, 70, 80, 90, 95, 98, 99];
