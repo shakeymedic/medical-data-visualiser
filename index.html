@@ -143,23 +143,27 @@
             }
         };
 
-        function createIconArray(affected, total, colour, label) {
-            var displayTotal = Math.min(total, 100);
-            var html = '<div class="flex flex-wrap gap-1 max-w-xl">';
-            
-            for (var i = 0; i < displayTotal; i++) {
-                var isAffected = i < affected;
-                var bgColour = isAffected ? colour : 'bg-gray-200';
-                var title = isAffected ? label : 'Not affected';
-                html += '<div class="w-6 h-6 rounded-sm ' + bgColour + ' border border-gray-300" title="' + title + '"></div>';
-            }
-            
-            html += '</div>';
-            if (total > 100) {
-                html += '<p class="text-sm text-gray-600 mt-2">Showing first 100 of ' + total + '</p>';
-            }
-            return html;
-        }
+function createIconArray(affected, total, colour, label) {
+    let iconSize = "w-4 h-4"; 
+    if (total > 500) {
+        iconSize = "w-2 h-2"; 
+    } else if (total > 200) {
+        iconSize = "w-3 h-3"; 
+    }
+
+    let html = `<div class="grid gap-0.5 justify-center population-grid">`;
+
+    for (let i = 0; i < total; i++) {
+        let square = (i < affected)
+            ? `<div class="${iconSize} ${colour}"></div>`
+            : `<div class="${iconSize} bg-gray-300"></div>`;
+        html += square;
+    }
+
+    html += `</div><p class="mt-2 text-sm text-center">${label} (out of ${total})</p>`;
+    return html;
+}
+
 
         function createStackedBar(affected, total, colour, label) {
             var percentage = (affected / total) * 100;
