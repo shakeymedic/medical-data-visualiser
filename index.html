@@ -16,18 +16,15 @@
     </style>
   <style>
     .population-grid {
-      margin: 0 auto;
-      max-width: 100%;
+      /* This is now controlled by max-width on the element and responsive columns */
       display: grid;
     }
     @media (max-width: 640px) {
       .population-grid { grid-template-columns: repeat(20, minmax(0, 1fr)) !important; }
     }
-    @media (min-width: 641px) and (max-width: 1024px) {
-      .population-grid { grid-template-columns: repeat(40, minmax(0, 1fr)) !important; }
-    }
-    @media (min-width: 1025px) {
-      .population-grid { grid-template-columns: repeat(50, minmax(0, 1fr)) !important; }
+    @media (min-width: 641px) {
+       /* Use a consistent column count on larger screens to maintain the desired look */
+      .population-grid { grid-template-columns: repeat(20, minmax(0, 1fr)) !important; }
     }
   </style>
 </head>
@@ -64,7 +61,7 @@
                     Biomarker Context
                 </button>
                 <button onclick="switchTab('likelihood')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="likelihood">
-                    Pre/Post-Test Probability
+                    Bayes Calculator
                 </button>
             </div>
 
@@ -153,7 +150,7 @@
 
         function createIconArray(affected, total, colour, label) {
             var displayTotal = Math.min(total, 1000);
-            var html = '<div class="grid population-grid gap-0.5">';
+            var html = '<div class="grid population-grid gap-1 max-w-xs">';
             var affectedCount = (total > 0) ? Math.round((affected / total) * displayTotal) : 0;
 
             for (var i = 0; i < displayTotal; i++) {
