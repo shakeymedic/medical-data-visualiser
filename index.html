@@ -14,6 +14,21 @@
             .print-text-gray { color: #111827 !important; }
         }
     </style>
+  <style>
+    .population-grid {
+      margin: 0 auto;
+      max-width: 100%;
+    }
+    @media (max-width: 640px) {
+      .population-grid { grid-template-columns: repeat(10, minmax(0, 1fr)) !important; }
+    }
+    @media (min-width: 641px) and (max-width: 1024px) {
+      .population-grid { grid-template-columns: repeat(20, minmax(0, 1fr)) !important; }
+    }
+    @media (min-width: 1025px) {
+      .population-grid { grid-template-columns: repeat(40, minmax(0, 1fr)) !important; }
+    }
+  </style>
 </head>
 <body class="bg-gray-50">
     <div class="min-h-screen">
