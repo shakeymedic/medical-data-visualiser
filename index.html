@@ -18,15 +18,16 @@
     .population-grid {
       margin: 0 auto;
       max-width: 100%;
+      display: grid;
     }
     @media (max-width: 640px) {
-      .population-grid { grid-template-columns: repeat(10, minmax(0, 1fr)) !important; }
-    }
-    @media (min-width: 641px) and (max-width: 1024px) {
       .population-grid { grid-template-columns: repeat(20, minmax(0, 1fr)) !important; }
     }
-    @media (min-width: 1025px) {
+    @media (min-width: 641px) and (max-width: 1024px) {
       .population-grid { grid-template-columns: repeat(40, minmax(0, 1fr)) !important; }
+    }
+    @media (min-width: 1025px) {
+      .population-grid { grid-template-columns: repeat(50, minmax(0, 1fr)) !important; }
     }
   </style>
 </head>
@@ -61,6 +62,9 @@
                 </button>
                 <button onclick="switchTab('biomarker')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="biomarker">
                     Biomarker Context
+                </button>
+                <button onclick="switchTab('likelihood')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="likelihood">
+                    Pre/Post-Test Probability
                 </button>
             </div>
 
@@ -140,23 +144,28 @@
                 targetValue: 7.0,
                 thresholdValue: '',
                 biomarkerName: 'HbA1c'
+            },
+            likelihood: {
+                preTestProb: 20,
+                likelihoodRatio: 5
             }
         };
 
         function createIconArray(affected, total, colour, label) {
             var displayTotal = Math.min(total, 1000);
-            var html = '<div class="flex flex-wrap gap-1 max-w-xl">';
-            
+            var html = '<div class="grid population-grid gap-0.5">';
+            var affectedCount = (total > 0) ? Math.round((affected / total) * displayTotal) : 0;
+
             for (var i = 0; i < displayTotal; i++) {
-                var isAffected = i < affected;
+                var isAffected = i < affectedCount;
                 var bgColour = isAffected ? colour : 'bg-gray-200';
                 var title = isAffected ? label : 'Not affected';
-                html += '<div class="w-6 h-6 rounded-sm ' + bgColour + ' border border-gray-300" title="' + title + '"></div>';
+                html += '<div class="w-3 h-3 rounded-sm ' + bgColour + '" title="' + title + '"></div>';
             }
             
             html += '</div>';
-            if (total > 100) {
-                html += '<p class="text-sm text-gray-600 mt-2">Showing first 100 of ' + total + '</p>';
+            if (total > 1000) {
+                html += '<p class="text-xs text-gray-500 mt-2">Visualising ' + displayTotal + ' of ' + total + ' people.</p>';
             }
             return html;
         }
@@ -224,6 +233,92 @@
                 newRisk: newRisk.toFixed(1)
             };
         }
+        
+        function calculateLikelihood() {
+            var preProb = state.likelihood.preTestProb;
+            var lr = state.likelihood.likelihoodRatio;
+
+            if (preProb <= 0 || preProb >= 100 || lr <= 0) {
+                return { postTestProb: null };
+            }
+
+            var preOdds = preProb / (100 - preProb);
+            var postOdds = preOdds * lr;
+            var postProb = (postOdds / (1 + postOdds)) * 100;
+
+            return {
+                postTestProb: postProb
+            };
+        }
+        
+        function createFaganNomogram(preTestProb, lr, postTestProb) {
+            var svgWidth = 600;
+            var svgHeight = 400;
+            var padding = { top: 40, right: 60, bottom: 40, left: 60 };
+            var axisX = { pre: padding.left, lr: padding.left + 220, post: padding.left + 480 };
+            var plotHeight = svgHeight - padding.top - padding.bottom;
+
+            var probTicks = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 30, 50, 70, 80, 90, 95, 98, 99];
+            var lrTicks = [1000, 200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01];
+
+            // Map log-odds to Y coordinate
+            var minLogOdds = Math.log(0.001 / 0.999); // Approx 0.1%
+            var maxLogOdds = Math.log(0.999 / 0.001); // Approx 99.9%
+            function probToY(p) {
+                if (p <= 0 || p >= 100) return padding.top + plotHeight;
+                var odds = p / (100 - p);
+                var logOdds = Math.log(odds);
+                return padding.top + plotHeight * (1 - (logOdds - minLogOdds) / (maxLogOdds - minLogOdds));
+            }
+
+            // Map log(LR) to Y coordinate
+            var minLogLR = Math.log(0.01);
+            var maxLogLR = Math.log(1000);
+            function lrToY(val) {
+                var logVal = Math.log(val);
+                return padding.top + plotHeight * (1 - (logVal - minLogLR) / (maxLogLR - minLogLR));
+            }
+            
+            var html = '<svg width="100%" viewBox="0 0 ' + svgWidth + ' ' + svgHeight + '" class="mx-auto">';
+            html += '<text x="' + axisX.pre + '" y="' + (padding.top - 15) + '" font-size="12" text-anchor="middle" font-weight="bold">Pre-Test Probability (%)</text>';
+            html += '<text x="' + axisX.lr + '" y="' + (padding.top - 15) + '" font-size="12" text-anchor="middle" font-weight="bold">Likelihood Ratio</text>';
+            html += '<text x="' + axisX.post + '" y="' + (padding.top - 15) + '" font-size="12" text-anchor="middle" font-weight="bold">Post-Test Probability (%)</text>';
+
+            // Draw axes
+            html += '<line x1="' + axisX.pre + '" y1="' + padding.top + '" x2="' + axisX.pre + '" y2="' + (svgHeight - padding.bottom) + '" stroke="#9ca3af" />';
+            html += '<line x1="' + axisX.lr + '" y1="' + padding.top + '" x2="' + axisX.lr + '" y2="' + (svgHeight - padding.bottom) + '" stroke="#9ca3af" />';
+            html += '<line x1="' + axisX.post + '" y1="' + padding.top + '" x2="' + axisX.post + '" y2="' + (svgHeight - padding.bottom) + '" stroke="#9ca3af" />';
+
+            // Draw ticks
+            probTicks.forEach(function(p) {
+                var y = probToY(p);
+                html += '<line x1="' + (axisX.pre - 5) + '" y1="' + y + '" x2="' + axisX.pre + '" y2="' + y + '" stroke="#4b5563" />';
+                html += '<text x="' + (axisX.pre - 8) + '" y="' + (y + 4) + '" font-size="10" text-anchor="end">' + p + '</text>';
+                html += '<line x1="' + axisX.post + '" y1="' + y + '" x2="' + (axisX.post + 5) + '" y2="' + y + '" stroke="#4b5563" />';
+                html += '<text x="' + (axisX.post + 8) + '" y="' + (y + 4) + '" font-size="10" text-anchor="start">' + p + '</text>';
+            });
+
+            lrTicks.forEach(function(val) {
+                var y = lrToY(val);
+                html += '<line x1="' + (axisX.lr - 5) + '" y1="' + y + '" x2="' + (axisX.lr + 5) + '" y2="' + y + '" stroke="#4b5563" />';
+                html += '<text x="' + (axisX.lr + 8) + '" y="' + (y + 4) + '" font-size="10">' + val + '</text>';
+            });
+            
+            // Draw connecting line and markers
+            if (postTestProb !== null) {
+                var yPre = probToY(preTestProb);
+                var yPost = probToY(postTestProb);
+                html += '<line x1="' + axisX.pre + '" y1="' + yPre + '" x2="' + axisX.post + '" y2="' + yPost + '" stroke="#ef4444" stroke-width="2" />';
+                html += '<circle cx="' + axisX.pre + '" cy="' + yPre + '" r="4" fill="#ef4444" />';
+                html += '<circle cx="' + axisX.post + '" cy="' + yPost + '" r="4" fill="#ef4444" />';
+                
+                // Calculate intersection with LR axis
+                var yLr = yPre + (yPost - yPre) * (axisX.lr - axisX.pre) / (axisX.post - axisX.pre);
+                html += '<circle cx="' + axisX.lr + '" cy="' + yLr + '" r="4" fill="#ef4444" />';
+            }
+            html += '</svg>';
+            return html;
+        }
 
         function renderDiagnostic() {
             var results = calculateDiagnostic();
@@ -248,7 +343,7 @@
             html += createIconArray(results.falseNegative, results.diseased, 'bg-red-500', 'Missed by test');
             html += '</div>';
             html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">False Positives: ' + results.falsePositive + ' of ' + results.healthy + ' without disease</h3>';
-            html += createIconArray(results.falsePositive, Math.min(results.healthy, 100), 'bg-orange-500', 'Incorrectly flagged');
+            html += createIconArray(results.falsePositive, results.healthy, 'bg-orange-500', 'Incorrectly flagged');
             html += '</div>';
             html += '<div class="bg-blue-50 border-l-4 border-blue-500 p-4"><h4 class="font-semibold text-blue-900 mb-2">Summary</h4>';
             html += '<p class="text-blue-800">Out of ' + state.diagnostic.population + ' people tested, the test correctly identifies ' + results.truePositive + ' out of ' + results.diseased + ' people with the condition, but misses ' + results.falseNegative + '. It also incorrectly flags ' + results.falsePositive + ' healthy people as positive.</p></div>';
@@ -271,7 +366,7 @@
             html += '</select></div></div>';
             html += '<div class="space-y-8">';
             html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">Icon Array: ' + affected + ' out of ' + state.risk.population + ' affected</h3>';
-            html += createIconArray(affected, Math.min(state.risk.population, 100), 'bg-red-500', 'Affected');
+            html += createIconArray(affected, state.risk.population, 'bg-red-500', 'Affected');
             html += '</div>';
             html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">Stacked Bar</h3>';
             html += createStackedBar(affected, state.risk.population, 'bg-red-500', 'Affected');
@@ -329,7 +424,7 @@
                 html += '<p class="text-lg mb-2">Number Needed to Treat</p>';
                 html += '<p class="text-6xl font-bold">' + nnt + '</p></div>';
                 html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">Visual representation: Treat ' + nnt + ' patients for 1 to benefit</h3>';
-                html += createIconArray(1, Math.min(nnt, 100), 'bg-green-500', 'Benefits from treatment');
+                html += createIconArray(1, nnt, 'bg-green-500', 'Benefits from treatment');
                 html += '</div>';
                 html += '<div class="bg-blue-50 border-l-4 border-blue-500 p-4">';
                 html += '<p class="text-blue-800">You need to treat <strong>' + nnt + ' patients</strong> for <strong>one patient to benefit</strong> from the treatment. ';
@@ -374,7 +469,7 @@
             html += '<p class="text-yellow-800">A <strong>' + state.relative.relativeReduction + '% relative risk reduction</strong> sounds dramatic, but it actually means ';
             html += 'reducing your risk from <strong>' + state.relative.baselineRisk + '%</strong> to <strong>' + results.newRisk + '%</strong> - ';
             html += 'an absolute reduction of just <strong>' + results.absoluteReduction + ' percentage points</strong>.</p>';
-            html += '<p class="text-yellow-800 mt-2">Out of 100 people, <strong>' + results.absoluteReduction + '</strong> fewer would experience the outcome.</p></div>';
+            html += '<p class="text-yellow-800 mt-2">Out of 100 people, <strong>' + Math.round(results.absoluteReduction) + '</strong> fewer would experience the outcome.</p></div>';
             html += '</div>';
             return html;
         }
@@ -396,7 +491,7 @@
             var range = max - min;
             
             function getPos(val) {
-                if (!val) return null;
+                if (!val || range === 0) return 0;
                 return ((val - min) / range) * 100;
             }
             
@@ -442,10 +537,11 @@
                 html += '<div class="absolute -bottom-6 left-0 transform -translate-x-1/2 text-xs text-orange-600 font-medium whitespace-nowrap">Threshold: ' + bio.thresholdValue + bio.unit + '</div></div>';
             }
             
-            html += '<div class="absolute h-full border-l-4 border-red-600" style="left: ' + valuePos + '%">';
+            html += '<div class="absolute h-full" style="left: ' + valuePos + '%">';
+            html += '<div class="absolute top-1/2 left-0 transform -translate-y-1/2 -translate-x-1/2 h-full border-l-4 border-red-600"></div>';
             html += '<div class="absolute top-1/2 left-0 transform -translate-y-1/2 -translate-x-1/2">';
-            html += '<div class="w-4 h-4 bg-red-600 rounded-full"></div></div>';
-            html += '<div class="absolute top-1/2 left-0 transform -translate-y-1/2 translate-x-3 text-sm font-bold text-red-600 whitespace-nowrap">' + bio.value + bio.unit + '</div></div>';
+            html += '<div class="w-4 h-4 bg-red-600 rounded-full border-2 border-white"></div></div>';
+            html += '<div class="absolute top-1/2 left-0 transform -translate-y-1/2 translate-x-3 text-sm font-bold text-red-600 whitespace-nowrap bg-white/70 px-1 rounded">' + bio.value + bio.unit + '</div></div>';
             html += '</div>';
             
             html += '<div class="flex justify-between text-xs text-gray-500 mt-2">';
@@ -486,6 +582,35 @@
             
             return html;
         }
+
+        function renderLikelihood() {
+            var results = calculateLikelihood();
+            var html = '';
+            html += '<h2 class="text-2xl font-bold text-gray-900 mb-4">Pre/Post-Test Probability Calculator</h2>';
+            html += '<p class="text-gray-600 mb-6">Apply Bayesian reasoning using a Fagan\'s Nomogram. Adjust your pre-test probability (your "gestalt") with the likelihood ratio of a test to determine the post-test probability.</p>';
+
+            html += '<div class="grid md:grid-cols-2 gap-6 mb-8">';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Pre-Test Probability (%)</label>';
+            html += '<input type="number" value="' + state.likelihood.preTestProb + '" onchange="updateState(\'likelihood\', \'preTestProb\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0.1" max="99.9" step="1"></div>';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Likelihood Ratio (LR)</label>';
+            html += '<input type="number" value="' + state.likelihood.likelihoodRatio + '" onchange="updateState(\'likelihood\', \'likelihoodRatio\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" step="0.1"></div>';
+            html += '</div>';
+
+            if(results.postTestProb !== null) {
+                html += '<div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8">';
+                html += '<p class="text-blue-800">With a pre-test probability of <strong>' + state.likelihood.preTestProb + '%</strong> and a likelihood ratio of <strong>' + state.likelihood.likelihoodRatio + '</strong>, the post-test probability is approximately <strong>' + results.postTestProb.toFixed(1) + '%</strong>.</p></div>';
+            } else {
+                html += '<div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-8">';
+                html += '<p class="text-yellow-800">Please enter a valid pre-test probability (0.1-99.9) and a positive likelihood ratio.</p></div>';
+            }
+            
+            html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">Fagan\'s Nomogram</h3>';
+            html += createFaganNomogram(state.likelihood.preTestProb, state.likelihood.likelihoodRatio, results.postTestProb);
+            html += '</div>';
+
+            return html;
+        }
+
 
         function updateState(tab, key, value) {
             state[tab][key] = value;
@@ -529,6 +654,9 @@
                     break;
                 case 'biomarker':
                     html = renderBiomarker();
+                    break;
+                case 'likelihood':
+                    html = renderLikelihood();
                     break;
             }
             
