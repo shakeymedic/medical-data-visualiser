@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Risk Communication Tool - WMEBEM</title>
+    <meta name="description" content="Evidence-based medical risk communication tool for healthcare professionals to visualise diagnostic test performance, risk reduction, and biomarker context.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            .print-hidden { display: none !important; }
+            .print-bg-white { background-color: white !important; }
+            .print-text-gray { color: #111827 !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <div class="bg-blue-900 text-white py-6 px-4 print-bg-white print-text-gray">
+            <div class="max-w-6xl mx-auto flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold mb-2">Medical Risk Communication Tool</h1>
+                    <p class="text-blue-100 print-text-gray">Evidence-based visualisation for patient communication</p>
+                </div>
+                <img src="https://i.imgur.com/09eFLTO.png" alt="WMEBEM Logo" class="h-16 md:h-20">
+            </div>
+        </div>
+
+        <div class="max-w-6xl mx-auto px-4 py-6">
+            <div id="tabs" class="flex gap-2 mb-6 overflow-x-auto print-hidden">
+                <button onclick="switchTab('diagnostic')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="diagnostic">
+                    Diagnostic Test
+                </button>
+                <button onclick="switchTab('risk')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="risk">
+                    Risk Visualiser
+                </button>
+                <button onclick="switchTab('reduction')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="reduction">
+                    Risk Reduction
+                </button>
+                <button onclick="switchTab('nnt')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="nnt">
+                    NNT/NNH
+                </button>
+                <button onclick="switchTab('relative')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="relative">
+                    Relative vs Absolute
+                </button>
+                <button onclick="switchTab('biomarker')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="biomarker">
+                    Biomarker Context
+                </button>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-end gap-2 mb-4 print-hidden">
+                    <button onclick="window.print()" class="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        Print
+                    </button>
+                </div>
+
+                <div id="tab-content"></div>
+            </div>
+
+            <div class="mt-8 bg-white rounded-lg shadow-md p-6 print-hidden">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Evidence-Based Communication Tips</h3>
+                <ul class="space-y-2 text-gray-700 text-sm">
+                    <li class="flex items-start">
+                        <span class="text-blue-900 mr-2">•</span>
+                        <span>Use numbers (even approximate) rather than verbal terms like "rare" or "common"</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-blue-900 mr-2">•</span>
+                        <span>Use consistent denominators (e.g., per 100 or per 1000) instead of varying "1 in X" formats</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-blue-900 mr-2">•</span>
+                        <span>Present absolute risk differences, not relative reductions, to avoid overestimating benefits</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-blue-900 mr-2">•</span>
+                        <span>Show both numerator and denominator in visual displays (icon arrays or stacked bars)</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-blue-900 mr-2">•</span>
+                        <span>Provide context for biomarkers: normal ranges, targets, and action thresholds</span>
+                    </li>
+                </ul>
+                <p class="text-xs text-gray-500 mt-4">Based on: Zikmund-Fisher BJ, Thorpe A, Fagerlin A. How to Communicate Medical Numbers. JAMA. 2025.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var state = {
+            activeTab: 'diagnostic',
+            diagnostic: {
+                sensitivity: 95,
+                specificity: 90,
+                prevalence: 10,
+                population: 1000
+            },
+            risk: {
+                risk: 5,
+                population: 100
+            },
+            reduction: {
+                baselineRisk: 10,
+                treatmentRisk: 6,
+                population: 100
+            },
+            nnt: {
+                baselineRisk: 10,
+                treatmentRisk: 6
+            },
+            relative: {
+                baselineRisk: 10,
+                relativeReduction: 50
+            },
+            biomarker: {
+                value: 8.3,
+                unit: '%',
+                normalMin: 4.0,
+                normalMax: 5.6,
+                targetValue: 7.0,
+                thresholdValue: '',
+                biomarkerName: 'HbA1c'
+            }
+        };
+
+        function createIconArray(affected, total, colour, label) {
+            var displayTotal = Math.min(total, 100);
+            var html = '<div class="flex flex-wrap gap-1 max-w-xl">';
+            
+            for (var i = 0; i < displayTotal; i++) {
+                var isAffected = i < affected;
+                var bgColour = isAffected ? colour : 'bg-gray-200';
+                var title = isAffected ? label : 'Not affected';
+                html += '<div class="w-6 h-6 rounded-sm ' + bgColour + ' border border-gray-300" title="' + title + '"></div>';
+            }
+            
+            html += '</div>';
+            if (total > 100) {
+                html += '<p class="text-sm text-gray-600 mt-2">Showing first 100 of ' + total + '</p>';
+            }
+            return html;
+        }
+
+        function createStackedBar(affected, total, colour, label) {
+            var percentage = (affected / total) * 100;
+            var html = '<div class="w-full max-w-xl">';
+            html += '<div class="h-12 bg-gray-200 rounded-lg overflow-hidden flex">';
+            html += '<div class="' + colour + ' flex items-center justify-center text-white font-semibold text-sm" style="width: ' + percentage + '%">';
+            html += (percentage > 10 ? affected : '');
+            html += '</div>';
+            html += '<div class="flex-1 flex items-center justify-center text-gray-600 text-sm">';
+            if (percentage <= 10) {
+                html += '<span class="text-gray-700 font-semibold mr-2">' + affected + '</span>';
+            }
+            html += (total - affected);
+            html += '</div>';
+            html += '</div>';
+            html += '<div class="flex justify-between text-xs text-gray-600 mt-1">';
+            html += '<span>' + label + '</span>';
+            html += '<span>Not affected</span>';
+            html += '</div>';
+            html += '</div>';
+            return html;
+        }
+
+        function calculateDiagnostic() {
+            var sens = state.diagnostic.sensitivity;
+            var spec = state.diagnostic.specificity;
+            var prev = state.diagnostic.prevalence;
+            var pop = state.diagnostic.population;
+            
+            var diseased = (prev / 100) * pop;
+            var healthy = pop - diseased;
+            var truePositive = (sens / 100) * diseased;
+            var falseNegative = diseased - truePositive;
+            var trueNegative = (spec / 100) * healthy;
+            var falsePositive = healthy - trueNegative;
+            
+            return {
+                truePositive: Math.round(truePositive),
+                falseNegative: Math.round(falseNegative),
+                trueNegative: Math.round(trueNegative),
+                falsePositive: Math.round(falsePositive),
+                diseased: Math.round(diseased),
+                healthy: Math.round(healthy)
+            };
+        }
+
+        function calculateNNT() {
+            var base = state.nnt.baselineRisk;
+            var treat = state.nnt.treatmentRisk;
+            var arr = base - treat;
+            if (arr <= 0) return null;
+            return Math.round(100 / arr);
+        }
+
+        function calculateRelativeRisk() {
+            var base = state.relative.baselineRisk;
+            var rel = state.relative.relativeReduction;
+            var absRed = (base * rel) / 100;
+            var newRisk = base - absRed;
+            return {
+                absoluteReduction: absRed.toFixed(1),
+                newRisk: newRisk.toFixed(1)
+            };
+        }
+
+        function renderDiagnostic() {
+            var results = calculateDiagnostic();
+            var html = '';
+            html += '<h2 class="text-2xl font-bold text-gray-900 mb-4">Diagnostic Test Performance</h2>';
+            html += '<p class="text-gray-600 mb-6">Visualise false positives and false negatives based on test sensitivity and specificity.</p>';
+            html += '<div class="grid md:grid-cols-2 gap-6 mb-8">';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Sensitivity (%)</label>';
+            html += '<input type="number" value="' + state.diagnostic.sensitivity + '" onchange="updateState(\'diagnostic\', \'sensitivity\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100"></div>';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Specificity (%)</label>';
+            html += '<input type="number" value="' + state.diagnostic.specificity + '" onchange="updateState(\'diagnostic\', \'specificity\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100"></div>';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Disease Prevalence (%)</label>';
+            html += '<input type="number" value="' + state.diagnostic.prevalence + '" onchange="updateState(\'diagnostic\', \'prevalence\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100"></div>';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Population Size</label>';
+            html += '<input type="number" value="' + state.diagnostic.population + '" onchange="updateState(\'diagnostic\', \'population\', parseInt(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="100" max="10000" step="100"></div>';
+            html += '</div>';
+            html += '<div class="space-y-8">';
+            html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">True Positives: ' + results.truePositive + ' of ' + results.diseased + ' with disease</h3>';
+            html += createIconArray(results.truePositive, results.diseased, 'bg-green-500', 'Correctly identified');
+            html += '</div>';
+            html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">False Negatives: ' + results.falseNegative + ' of ' + results.diseased + ' with disease</h3>';
+            html += createIconArray(results.falseNegative, results.diseased, 'bg-red-500', 'Missed by test');
+            html += '</div>';
+            html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">False Positives: ' + results.falsePositive + ' of ' + results.healthy + ' without disease</h3>';
+            html += createIconArray(results.falsePositive, Math.min(results.healthy, 100), 'bg-orange-500', 'Incorrectly flagged');
+            html += '</div>';
+            html += '<div class="bg-blue-50 border-l-4 border-blue-500 p-4"><h4 class="font-semibold text-blue-900 mb-2">Summary</h4>';
+            html += '<p class="text-blue-800">Out of ' + state.diagnostic.population + ' people tested, the test correctly identifies ' + results.truePositive + ' out of ' + results.diseased + ' people with the condition, but misses ' + results.falseNegative + '. It also incorrectly flags ' + results.falsePositive + ' healthy people as positive.</p></div>';
+            html += '</div>';
+            return html;
+        }
+
+        function renderRisk() {
+            var affected = Math.round((state.risk.risk / 100) * state.risk.population);
+            var html = '';
+            html += '<h2 class="text-2xl font-bold text-gray-900 mb-4">Absolute Risk Visualiser</h2>';
+            html += '<p class="text-gray-600 mb-6">Show risk as people affected out of a population.</p>';
+            html += '<div class="grid md:grid-cols-2 gap-6 mb-8">';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Risk (%)</label>';
+            html += '<input type="number" value="' + state.risk.risk + '" onchange="updateState(\'risk\', \'risk\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="0.1"></div>';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Population Size</label>';
+            html += '<select onchange="updateState(\'risk\', \'population\', parseInt(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg">';
+            html += '<option value="100"' + (state.risk.population === 100 ? ' selected' : '') + '>100 people</option>';
+            html += '<option value="1000"' + (state.risk.population === 1000 ? ' selected' : '') + '>1000 people</option>';
+            html += '</select></div></div>';
+            html += '<div class="space-y-8">';
+            html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">Icon Array: ' + affected + ' out of ' + state.risk.population + ' affected</h3>';
+            html += createIconArray(affected, Math.min(state.risk.population, 100), 'bg-red-500', 'Affected');
+            html += '</div>';
+            html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">Stacked Bar</h3>';
+            html += createStackedBar(affected, state.risk.population, 'bg-red-500', 'Affected');
+            html += '</div>';
+            html += '<div class="bg-blue-50 border-l-4 border-blue-500 p-4">';
+            html += '<p class="text-blue-800"><strong>' + state.risk.risk + '%</strong> means approximately <strong>' + affected + ' out of every ' + state.risk.population + ' people</strong> will be affected.</p></div>';
+            html += '</div>';
+            return html;
+        }
+
+        function renderReduction() {
+            var before = Math.round((state.reduction.baselineRisk / 100) * state.reduction.population);
+            var after = Math.round((state.reduction.treatmentRisk / 100) * state.reduction.population);
+            var diff = before - after;
+            var html = '';
+            html += '<h2 class="text-2xl font-bold text-gray-900 mb-4">Risk Reduction Calculator</h2>';
+            html += '<p class="text-gray-600 mb-6">Compare absolute risks before and after treatment.</p>';
+            html += '<div class="grid md:grid-cols-2 gap-6 mb-8">';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Baseline Risk (%)</label>';
+            html += '<input type="number" value="' + state.reduction.baselineRisk + '" onchange="updateState(\'reduction\', \'baselineRisk\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="0.1"></div>';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Risk After Treatment (%)</label>';
+            html += '<input type="number" value="' + state.reduction.treatmentRisk + '" onchange="updateState(\'reduction\', \'treatmentRisk\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="0.1"></div></div>';
+            html += '<div class="space-y-8">';
+            html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">Before Treatment</h3>';
+            html += createIconArray(before, state.reduction.population, 'bg-red-500', 'At risk');
+            html += '<p class="text-sm text-gray-600 mt-2">' + before + ' out of ' + state.reduction.population + ' affected</p></div>';
+            html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">After Treatment</h3>';
+            html += createIconArray(after, state.reduction.population, 'bg-orange-500', 'Still at risk');
+            html += '<p class="text-sm text-gray-600 mt-2">' + after + ' out of ' + state.reduction.population + ' affected</p></div>';
+            html += '<div class="bg-green-50 border-l-4 border-green-500 p-4"><h4 class="font-semibold text-green-900 mb-2">Absolute Risk Reduction</h4>';
+            html += '<p class="text-green-800 text-lg">Treatment reduces risk from <strong>' + state.reduction.baselineRisk + '%</strong> to <strong>' + state.reduction.treatmentRisk + '%</strong></p>';
+            html += '<p class="text-green-800 mt-2">That is a <strong>' + (state.reduction.baselineRisk - state.reduction.treatmentRisk).toFixed(1) + ' percentage point</strong> reduction</p>';
+            html += '<p class="text-green-800 mt-2"><strong>' + diff + ' fewer people</strong> out of ' + state.reduction.population + ' will be affected</p></div>';
+            html += '</div>';
+            return html;
+        }
+
+        function renderNNT() {
+            var nnt = calculateNNT();
+            var html = '';
+            html += '<h2 class="text-2xl font-bold text-gray-900 mb-4">Number Needed to Treat (NNT)</h2>';
+            html += '<p class="text-gray-600 mb-6">Calculate how many patients need treatment for one to benefit.</p>';
+            html += '<div class="grid md:grid-cols-2 gap-6 mb-8">';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Baseline Risk (%)</label>';
+            html += '<input type="number" value="' + state.nnt.baselineRisk + '" onchange="updateState(\'nnt\', \'baselineRisk\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="0.1"></div>';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Risk After Treatment (%)</label>';
+            html += '<input type="number" value="' + state.nnt.treatmentRisk + '" onchange="updateState(\'nnt\', \'treatmentRisk\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="0.1"></div></div>';
+            
+            if (!nnt) {
+                html += '<div class="bg-yellow-50 border-l-4 border-yellow-500 p-4">';
+                html += '<p class="text-yellow-800">Treatment risk must be lower than baseline risk to calculate NNT.</p></div>';
+            } else {
+                html += '<div class="space-y-6">';
+                html += '<div class="bg-blue-900 text-white p-8 rounded-lg text-center">';
+                html += '<p class="text-lg mb-2">Number Needed to Treat</p>';
+                html += '<p class="text-6xl font-bold">' + nnt + '</p></div>';
+                html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">Visual representation: Treat ' + nnt + ' patients for 1 to benefit</h3>';
+                html += createIconArray(1, Math.min(nnt, 100), 'bg-green-500', 'Benefits from treatment');
+                html += '</div>';
+                html += '<div class="bg-blue-50 border-l-4 border-blue-500 p-4">';
+                html += '<p class="text-blue-800">You need to treat <strong>' + nnt + ' patients</strong> for <strong>one patient to benefit</strong> from the treatment. ';
+                html += 'The absolute risk reduction is <strong>' + (state.nnt.baselineRisk - state.nnt.treatmentRisk).toFixed(1) + ' percentage points</strong>.</p></div>';
+                html += '</div>';
+            }
+            return html;
+        }
+
+        function renderRelative() {
+            var results = calculateRelativeRisk();
+            var html = '';
+            html += '<h2 class="text-2xl font-bold text-gray-900 mb-4">Relative vs Absolute Risk</h2>';
+            html += '<p class="text-gray-600 mb-6">Convert relative risk reduction to absolute terms.</p>';
+            html += '<div class="grid md:grid-cols-2 gap-6 mb-8">';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Baseline Risk (%)</label>';
+            html += '<input type="number" value="' + state.relative.baselineRisk + '" onchange="updateState(\'relative\', \'baselineRisk\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="0.1"></div>';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Relative Risk Reduction (%)</label>';
+            html += '<input type="number" value="' + state.relative.relativeReduction + '" onchange="updateState(\'relative\', \'relativeReduction\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="1"></div></div>';
+            html += '<div class="space-y-8">';
+            html += '<div class="grid md:grid-cols-2 gap-6">';
+            html += '<div class="bg-red-50 border-2 border-red-200 p-6 rounded-lg">';
+            html += '<h3 class="text-xl font-semibold text-red-900 mb-2">Misleading</h3>';
+            html += '<p class="text-3xl font-bold text-red-700 mb-2">' + state.relative.relativeReduction + '%</p>';
+            html += '<p class="text-red-800">Relative Risk Reduction</p>';
+            html += '<p class="text-sm text-red-600 mt-4">This sounds impressive but does not tell patients the actual impact</p></div>';
+            html += '<div class="bg-green-50 border-2 border-green-500 p-6 rounded-lg">';
+            html += '<h3 class="text-xl font-semibold text-green-900 mb-2">Clear and Honest</h3>';
+            html += '<p class="text-3xl font-bold text-green-700 mb-2">' + state.relative.baselineRisk + '% to ' + results.newRisk + '%</p>';
+            html += '<p class="text-green-800">Absolute Risk Change</p>';
+            html += '<p class="text-sm text-green-600 mt-4">' + results.absoluteReduction + ' percentage point reduction</p></div></div>';
+            html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">Visual Comparison</h3>';
+            html += '<div class="space-y-4">';
+            html += '<div><p class="text-sm font-medium text-gray-700 mb-2">Before Treatment</p>';
+            html += createStackedBar(Math.round(state.relative.baselineRisk), 100, 'bg-red-500', 'At risk');
+            html += '</div>';
+            html += '<div><p class="text-sm font-medium text-gray-700 mb-2">After Treatment</p>';
+            html += createStackedBar(Math.round(parseFloat(results.newRisk)), 100, 'bg-orange-500', 'At risk');
+            html += '</div></div></div>';
+            html += '<div class="bg-yellow-50 border-l-4 border-yellow-500 p-4">';
+            html += '<h4 class="font-semibold text-yellow-900 mb-2">Why This Matters</h4>';
+            html += '<p class="text-yellow-800">A <strong>' + state.relative.relativeReduction + '% relative risk reduction</strong> sounds dramatic, but it actually means ';
+            html += 'reducing your risk from <strong>' + state.relative.baselineRisk + '%</strong> to <strong>' + results.newRisk + '%</strong> - ';
+            html += 'an absolute reduction of just <strong>' + results.absoluteReduction + ' percentage points</strong>.</p>';
+            html += '<p class="text-yellow-800 mt-2">Out of 100 people, <strong>' + results.absoluteReduction + '</strong> fewer would experience the outcome.</p></div>';
+            html += '</div>';
+            return html;
+        }
+
+        function renderBiomarker() {
+            var bio = state.biomarker;
+            var minVal = bio.normalMin;
+            var maxVal = bio.normalMax;
+            var currentVal = bio.value;
+            var targetVal = bio.targetValue;
+            var thresholdVal = bio.thresholdValue;
+            
+            var allVals = [minVal, maxVal, currentVal];
+            if (targetVal) allVals.push(targetVal);
+            if (thresholdVal) allVals.push(parseFloat(thresholdVal));
+            
+            var min = Math.min.apply(null, allVals) * 0.8;
+            var max = Math.max.apply(null, allVals) * 1.2;
+            var range = max - min;
+            
+            function getPos(val) {
+                if (!val) return null;
+                return ((val - min) / range) * 100;
+            }
+            
+            var normalPos = getPos(minVal);
+            var normalWidth = getPos(maxVal) - normalPos;
+            var valuePos = getPos(currentVal);
+            var targetPos = targetVal ? getPos(targetVal) : null;
+            var thresholdPos = thresholdVal ? getPos(parseFloat(thresholdVal)) : null;
+            
+            var html = '';
+            html += '<h2 class="text-2xl font-bold text-gray-900 mb-4">Biomarker Contextualiser</h2>';
+            html += '<p class="text-gray-600 mb-6">Add context to lab results with normal ranges and targets.</p>';
+            html += '<div class="grid md:grid-cols-2 gap-6 mb-8">';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Biomarker Name</label>';
+            html += '<input type="text" value="' + bio.biomarkerName + '" onchange="updateState(\'biomarker\', \'biomarkerName\', this.value)" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Unit</label>';
+            html += '<input type="text" value="' + bio.unit + '" onchange="updateState(\'biomarker\', \'unit\', this.value)" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Patient Value</label>';
+            html += '<input type="number" value="' + bio.value + '" onchange="updateState(\'biomarker\', \'value\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" step="0.1"></div>';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Normal Range Min</label>';
+            html += '<input type="number" value="' + bio.normalMin + '" onchange="updateState(\'biomarker\', \'normalMin\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" step="0.1"></div>';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Normal Range Max</label>';
+            html += '<input type="number" value="' + bio.normalMax + '" onchange="updateState(\'biomarker\', \'normalMax\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" step="0.1"></div>';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Target Value (optional)</label>';
+            html += '<input type="number" value="' + (bio.targetValue || '') + '" onchange="updateState(\'biomarker\', \'targetValue\', parseFloat(this.value) || \'\')" class="w-full px-4 py-2 border border-gray-300 rounded-lg" step="0.1" placeholder="Leave empty if none"></div>';
+            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Action Threshold (optional)</label>';
+            html += '<input type="number" value="' + bio.thresholdValue + '" onchange="updateState(\'biomarker\', \'thresholdValue\', this.value)" class="w-full px-4 py-2 border border-gray-300 rounded-lg" step="0.1" placeholder="Leave empty if none"></div>';
+            html += '</div>';
+            
+            html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">' + bio.biomarkerName + ' Level</h3>';
+            html += '<div class="w-full max-w-2xl mt-6">';
+            html += '<div class="relative h-24 bg-gray-100 rounded-lg border-2 border-gray-300">';
+            html += '<div class="absolute h-full bg-green-100 border-l-2 border-r-2 border-green-500" style="left: ' + normalPos + '%; width: ' + normalWidth + '%">';
+            html += '<div class="absolute top-1 left-1/2 transform -translate-x-1/2 text-xs text-green-700 font-medium">Normal</div></div>';
+            
+            if (targetPos !== null) {
+                html += '<div class="absolute h-full border-l-2 border-blue-500" style="left: ' + targetPos + '%">';
+                html += '<div class="absolute -top-6 left-0 transform -translate-x-1/2 text-xs text-blue-600 font-medium whitespace-nowrap">Target: ' + bio.targetValue + bio.unit + '</div></div>';
+            }
+            
+            if (thresholdPos !== null) {
+                html += '<div class="absolute h-full border-l-2 border-orange-500" style="left: ' + thresholdPos + '%">';
+                html += '<div class="absolute -bottom-6 left-0 transform -translate-x-1/2 text-xs text-orange-600 font-medium whitespace-nowrap">Threshold: ' + bio.thresholdValue + bio.unit + '</div></div>';
+            }
+            
+            html += '<div class="absolute h-full border-l-4 border-red-600" style="left: ' + valuePos + '%">';
+            html += '<div class="absolute top-1/2 left-0 transform -translate-y-1/2 -translate-x-1/2">';
+            html += '<div class="w-4 h-4 bg-red-600 rounded-full"></div></div>';
+            html += '<div class="absolute top-1/2 left-0 transform -translate-y-1/2 translate-x-3 text-sm font-bold text-red-600 whitespace-nowrap">' + bio.value + bio.unit + '</div></div>';
+            html += '</div>';
+            
+            html += '<div class="flex justify-between text-xs text-gray-500 mt-2">';
+            html += '<span>' + min.toFixed(1) + bio.unit + '</span>';
+            html += '<span>' + max.toFixed(1) + bio.unit + '</span></div>';
+            
+            html += '<div class="mt-4 text-sm text-gray-700">';
+            html += '<p><strong>Normal range:</strong> ' + bio.normalMin + bio.unit + ' to ' + bio.normalMax + bio.unit + '</p>';
+            if (bio.targetValue) {
+                html += '<p><strong>Target:</strong> Below ' + bio.targetValue + bio.unit + '</p>';
+            }
+            if (bio.thresholdValue) {
+                html += '<p><strong>Action threshold:</strong> ' + bio.thresholdValue + bio.unit + '</p>';
+            }
+            html += '</div></div>';
+            
+            html += '<div class="mt-6 bg-blue-50 border-l-4 border-blue-500 p-4">';
+            html += '<h4 class="font-semibold text-blue-900 mb-2">Interpretation</h4>';
+            html += '<p class="text-blue-800">Your ' + bio.biomarkerName + ' is <strong>' + bio.value + bio.unit + '</strong>.';
+            if (bio.value < bio.normalMin) {
+                html += ' This is below the normal range.';
+            } else if (bio.value > bio.normalMax) {
+                html += ' This is above the normal range.';
+            } else {
+                html += ' This is within the normal range.';
+            }
+            html += '</p>';
+            if (bio.targetValue) {
+                html += '<p class="text-blue-800 mt-2">';
+                if (bio.value <= bio.targetValue) {
+                    html += 'You have reached the target of ' + bio.targetValue + bio.unit + '.';
+                } else {
+                    html += 'The target for you is ' + bio.targetValue + bio.unit + '.';
+                }
+                html += '</p>';
+            }
+            html += '</div></div>';
+            
+            return html;
+        }
+
+        function updateState(tab, key, value) {
+            state[tab][key] = value;
+            render();
+        }
+
+        function switchTab(tabName) {
+            state.activeTab = tabName;
+            
+            var buttons = document.querySelectorAll('.tab-btn');
+            for (var i = 0; i < buttons.length; i++) {
+                if (buttons[i].dataset.tab === tabName) {
+                    buttons[i].className = 'tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors bg-blue-900 text-white';
+                } else {
+                    buttons[i].className = 'tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors bg-white text-gray-700 hover:bg-gray-100';
+                }
+            }
+            
+            render();
+        }
+
+        function render() {
+            var content = document.getElementById('tab-content');
+            var html = '';
+            
+            switch(state.activeTab) {
+                case 'diagnostic':
+                    html = renderDiagnostic();
+                    break;
+                case 'risk':
+                    html = renderRisk();
+                    break;
+                case 'reduction':
+                    html = renderReduction();
+                    break;
+                case 'nnt':
+                    html = renderNNT();
+                    break;
+                case 'relative':
+                    html = renderRelative();
+                    break;
+                case 'biomarker':
+                    html = renderBiomarker();
+                    break;
+            }
+            
+            content.innerHTML = html;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            switchTab('diagnostic');
+        });
+    </script>
+</body>
+</html>
