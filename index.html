@@ -7,6 +7,7 @@
     <meta name="description" content="Evidence-based medical risk communication tool for healthcare professionals to visualise diagnostic test performance, risk reduction, and biomarker context.">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" xintegrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <style>
         .print-only { display: none !important; }
         @media print {
@@ -135,35 +136,29 @@
     <script>
         // --- DATA AND STATE MANAGEMENT ---
         const diagScenarios = {
-            'custom': { group: 'Custom', name: 'Custom values...', sens: 95, spec: 90, prev: 10, source: null, description: 'Enter custom values for sensitivity, specificity, and prevalence to model a specific test.' },
-            'heart_low': { group: 'Cardiology', name: 'HEART Score (0-3) for 30-day MACE', sens: 97, spec: 50, prev: 18, source: 'Laureano-Melo R et al., Am J Emerg Med 2021', description: 'The HEART score helps predict the 6-week risk of a Major Adverse Cardiac Event (MACE) in patients with chest pain. A positive result (higher score) suggests a higher risk of MACE.' },
-            'heart_mod': { group: 'Cardiology', name: 'HEART Score (4-6) for 30-day MACE', sens: 80, spec: 80, prev: 18, source: 'Sixma et al. Neth Heart J 2008', description: 'The HEART score helps predict the 6-week risk of a Major Adverse Cardiac Event (MACE) in patients with chest pain. A positive result (higher score) suggests a higher risk of MACE.' },
-            'rosier': { group: 'Neurology', name: 'ROSIER Score (>0) for Stroke', sens: 93, spec: 70, prev: 65, source: 'Nor et al., Lancet Neurol 2005', description: 'The ROSIER score helps differentiate stroke from stroke mimics. A positive result (>0) suggests a higher likelihood of stroke.' },
-            'neg_ct_sah': { group: 'Neurology', name: 'Neg CT Head (<6h) for SAH', sens: 99.9, spec: 99.9, prev: 0.1, source: 'Perry JJ et al., BMJ 2011 (Risk of missed SAH is ~1 in 2300)', description: 'This scenario represents the high negative predictive value of a non-contrast CT head scan performed within 6 hours of headache onset for subarachnoid haemorrhage (SAH). A negative result (no blood seen) makes SAH extremely unlikely.' },
-            'sah': { group: 'Neurology', name: 'Ottawa SAH Rule for SAH', sens: 99, spec: 15, prev: 2, source: 'Perry JJ et al., JAMA 2013', description: 'The Ottawa SAH Rule is a clinical decision rule to identify patients with acute headache who may have a subarachnoid haemorrhage (SAH) and require further investigation. A positive result (rule is triggered) suggests SAH is possible.' },
-            'cch': { group: 'Trauma', name: 'Canadian CT Head Rule', sens: 100, spec: 38, prev: 1, source: 'Stiell et al., Lancet 2001', description: 'The Canadian CT Head Rule identifies adults with minor head injury who are at high risk for clinically important brain injury and need a CT scan. A positive result (rule is triggered) indicates a need for imaging.' },
-            'pecarn': { group: 'Trauma', name: 'PECARN Head CT Rule (age < 2y)', sens: 100, spec: 54, prev: 1, source: 'Kuppermann et al., Lancet 2009', description: 'The PECARN rule helps decide which children with minor head trauma need a CT scan. A positive result (rule is triggered) suggests a higher risk of clinically important traumatic brain injury.' },
-            'nexus': { group: 'Trauma', name: 'NEXUS C-Spine Rule', sens: 99, spec: 13, prev: 2.5, source: 'Hoffman et al., NEJM 2000', description: 'The NEXUS criteria are used to clear patients of cervical spine injury without the need for imaging. A positive result (any criterion is met) means an injury cannot be excluded, and imaging is needed.' },
-            'ccs': { group: 'Trauma', name: 'Canadian C-Spine Rule', sens: 99, spec: 45, prev: 2.5, source: 'Stiell et al., NEJM 2001', description: 'The Canadian C-Spine Rule is a decision tool to determine the need for cervical spine imaging in alert, stable trauma patients. A positive result (rule is triggered) indicates imaging is required.' },
-            'oar': { group: 'Trauma', name: 'Ottawa Ankle Rules', sens: 98, spec: 35, prev: 15, source: 'Stiell et al., JAMA 1994', description: 'The Ottawa Ankle Rules determine whether an X-ray is needed for ankle injuries. A positive result (pain in specific areas or inability to bear weight) indicates an X-ray is required to check for a fracture.' },
-            'okr': { group: 'Trauma', name: 'Ottawa Knee Rules', sens: 99, spec: 49, prev: 6, source: 'Stiell et al., JAMA 1997', description: 'The Ottawa Knee Rules determine whether an X-ray is needed for knee injuries. A positive result (meeting any of the criteria) indicates an X-ray is required to check for a fracture.' },
-            'perc': { group: 'VTE / Respiratory', name: 'PERC Rule for PE', sens: 97, spec: 22, prev: 2, source: 'Kline JA et al., J Thromb Haemost 2008', description: 'The PERC (Pulmonary Embolism Rule-out Criteria) rule helps to identify patients with a very low risk of pulmonary embolism (PE) who do not need further testing. A negative result (all criteria are negative) effectively rules out PE.' },
-            'wells_dvt': { group: 'VTE / Respiratory', name: 'Wells Score (≤1) for DVT', sens: 85, spec: 55, prev: 20, source: 'Wells et al., Lancet 2000', description: "The Wells' score predicts the pre-test probability of deep vein thrombosis (DVT). A positive test (higher score) indicates a higher likelihood of DVT." },
-            'geneva': { group: 'VTE / Respiratory', name: 'Geneva Score (≤2) for PE', sens: 88, spec: 52, prev: 20, source: 'Klok et al., Arch Intern Med 2008', description: 'The Geneva score predicts the pre-test probability of pulmonary embolism (PE). A positive test (higher score) indicates a higher likelihood of PE.' },
-            'curb65': { group: 'VTE / Respiratory', name: 'CURB-65 (≥2) for Pneumonia Mortality', sens: 57, spec: 79, prev: 9, source: 'Lim et al., Thorax 2003', description: 'The CURB-65 score assesses the severity of community-acquired pneumonia to help decide on admission. A positive test (higher score) indicates higher 30-day mortality risk and likely need for inpatient care.' },
-            'centor': { group: 'Infectious Disease', name: 'Centor Score (≥3) for Strep Throat', sens: 50, spec: 85, prev: 10, source: 'Fine et al., Ann Intern Med 2012', description: 'The Centor Score helps predict the likelihood of Group A streptococcal infection in patients with a sore throat. A positive test (higher score) suggests bacterial pharyngitis is more likely.' },
-            'feverpain': { group: 'Infectious Disease', name: 'FeverPAIN Score (≥4) for Strep Throat', sens: 74, spec: 78, prev: 10, source: 'Little et al., BMJ 2014', description: 'The FeverPAIN score, similar to Centor, helps predict the likelihood of streptococcal pharyngitis. A positive test (higher score) increases the probability of a bacterial cause.' },
-            'gbs': { group: 'Gastroenterology', name: 'Glasgow-Blatchford Score (0) for UGI Bleed', sens: 99, spec: 28, prev: 40, source: 'Stanley et al., Lancet 2000', description: 'The Glasgow-Blatchford Score assesses the need for intervention (like transfusion or endoscopy) in patients with an upper GI bleed. A score of 0 (positive result for low risk) suggests outpatient management may be safe.' },
-            'mallampati': { group: 'Anaesthetics', name: 'Mallampati (III/IV) for Difficult Laryngoscopy', sens: 42, spec: 87, prev: 10, source: 'Lee et al., Br J Anaesth 2006', description: 'The Mallampati score is used to predict the ease of endotracheal intubation. A positive test (Class III or IV) suggests a more difficult intubation may be encountered.' }
+            'custom': { name: 'Custom values', description: 'Enter custom values for sensitivity, specificity, and prevalence to model a specific test.', scores: { 'custom': { name: 'Custom', sens: 95, spec: 90, prev: 10, source: null } } },
+            'heart': { name: 'HEART Score for 30-day MACE', source: 'Sixma et al. Neth Heart J 2008', description: 'The HEART score helps predict the 6-week risk of a Major Adverse Cardiac Event (MACE) in patients with chest pain. A higher score suggests a higher risk.', scores: { '0-3': { name: 'Score 0-3 (Low Risk)', sens: 97, spec: 50, prev: 18 }, '4-6': { name: 'Score 4-6 (Moderate Risk)', sens: 80, spec: 80, prev: 18 } } },
+            'alvarado': { name: 'Alvarado Score for Appendicitis', source: 'Ohle R et al. Acad Emerg Med. 2011', description: 'The Alvarado score is used to risk-stratify patients with suspected appendicitis.', scores: { '>=7': { name: 'Score ≥ 7 (High Risk)', sens: 82, spec: 81, prev: 35 }, '<5': { name: 'Score < 5 (Low Risk to rule out)', sens: 99, spec: 43, prev: 35 } } },
+            'wells_pe': { name: 'Wells\' Score for PE', source: 'Wolf SJ et al. Ann Emerg Med. 2019', description: 'The Wells\' score helps determine the pre-test probability of a pulmonary embolism (PE). This models using the dichotomised score.', scores: { '>4': { name: 'Score > 4 (PE Likely)', sens: 60, spec: 78, prev: 28 }, '<=4': { name: 'Score ≤ 4 (PE Unlikely)', sens: 83, spec: 46, prev: 6 } } },
+            'wells_dvt': { name: 'Wells\' Score for DVT', source: 'Wells et al., Lancet 2000', description: 'The Wells\' score predicts the pre-test probability of deep vein thrombosis (DVT). A higher score indicates a higher likelihood of DVT.', scores: { '<=1': { name: 'Score ≤ 1 (DVT Unlikely)', sens: 85, spec: 55, prev: 20 } } },
+            'rosier': { name: 'ROSIER Score for Stroke', source: 'Nor et al., Lancet Neurol 2005', description: 'The ROSIER score helps differentiate stroke from stroke mimics. A positive result (>0) suggests a higher likelihood of stroke.', scores: { '>0': { name: 'Score > 0', sens: 93, spec: 70, prev: 65 } } },
+            'sah': { name: 'Ottawa SAH Rule', source: 'Perry JJ et al., JAMA 2013', description: 'The Ottawa SAH Rule is a clinical decision rule to identify patients with acute headache who may have a subarachnoid haemorrhage (SAH) and require further investigation. A positive result (rule is triggered) suggests SAH is possible.', scores: { 'positive': { name: 'Positive Rule', sens: 99, spec: 15, prev: 2 } } },
+            'cch': { name: 'Canadian CT Head Rule', source: 'Stiell et al., Lancet 2001', description: 'The Canadian CT Head Rule identifies adults with minor head injury who are at high risk for clinically important brain injury and need a CT scan. A positive result (rule is triggered) indicates a need for imaging.', scores: { 'positive': { name: 'Positive Rule', sens: 100, spec: 38, prev: 1 } } },
+            'pecarn': { name: 'PECARN Head CT Rule', source: 'Kuppermann et al., Lancet 2009', description: 'The PECARN rule helps decide which children with minor head trauma need a CT scan. A positive result (rule is triggered) suggests a higher risk of clinically important traumatic brain injury.', scores: { '<2y': { name: 'Age < 2 years', sens: 100, spec: 54, prev: 1 } } },
+            'nexus': { name: 'NEXUS C-Spine Rule', source: 'Hoffman et al., NEJM 2000', description: 'The NEXUS criteria are used to clear patients of cervical spine injury without the need for imaging. A positive result (any criterion is met) means an injury cannot be excluded, and imaging is needed.', scores: { 'positive': { name: 'Positive Rule', sens: 99, spec: 13, prev: 2.5 } } },
+            'ccs': { name: 'Canadian C-Spine Rule', source: 'Stiell et al., NEJM 2001', description: 'The Canadian C-Spine Rule is a decision tool to determine the need for cervical spine imaging in alert, stable trauma patients. A positive result (rule is triggered) indicates imaging is required.', scores: { 'positive': { name: 'Positive Rule', sens: 99, spec: 45, prev: 2.5 } } },
+            'oar': { name: 'Ottawa Ankle Rules', source: 'Stiell et al., JAMA 1994', description: 'The Ottawa Ankle Rules determine whether an X-ray is needed for ankle injuries. A positive result (pain in specific areas or inability to bear weight) indicates an X-ray is required to check for a fracture.', scores: { 'positive': { name: 'Positive Rule', sens: 98, spec: 35, prev: 15 } } },
+            'okr': { name: 'Ottawa Knee Rules', source: 'Stiell et al., JAMA 1997', description: 'The Ottawa Knee Rules determine whether an X-ray is needed for knee injuries. A positive result (meeting any of the criteria) indicates an X-ray is required to check for a fracture.', scores: { 'positive': { name: 'Positive Rule', sens: 99, spec: 49, prev: 6 } } },
+            'perc': { name: 'PERC Rule for PE', source: 'Kline JA et al., J Thromb Haemost 2008', description: 'The PERC (Pulmonary Embolism Rule-out Criteria) rule helps to identify patients with a very low risk of pulmonary embolism (PE) who do not need further testing. A negative result (all criteria are negative) effectively rules out PE.', scores: { 'positive': { name: 'Positive Rule (1+ criteria)', sens: 97, spec: 22, prev: 2 } } },
         };
 
         const riskScenarios = {
+            'heart': { name: 'HEART Score (MACE Risk)', source: 'Sixma et al. Neth Heart J 2008', scores: { 'by_score': { name: 'Score', points: { '0': 1.7, '1': 2.5, '2': 4.1, '3': 7.7, '4': 12.3, '5': 20.2, '6': 26.2, '7': 42.9, '8': 75.0, '9': 75.0, '10': 75.0 }, unit: '6-Week MACE Risk (%)' } } },
+            'news2': { name: 'NEWS2 Score (Mortality Risk)', source: 'Royal College of Physicians, 2017', scores: { 'by_risk': { name: 'Risk Level', points: { 'Low (Score 0-4)': 1.1, 'Medium (Score 5-6)': 5.4, 'High (Score ≥7)': 10.1 }, unit: '24-Hour Mortality Risk (%)' } } },
             'af_stroke': { name: 'Atrial Fibrillation (Stroke Risk)', source: 'NICE Guideline [NG196]', scores: { 'chads_vasc': { name: 'CHA₂DS₂-VASc', points: {0:0.2, 1:0.6, 2:2.2, 3:3.2, 4:4.8, 5:7.2, 6:9.7, 7:11.2, 8:10.8, 9:12.2}, unit: 'Annual Stroke Risk (%)' } } },
             'af_bleed': { name: 'Atrial Fibrillation (Bleeding Risk)', source: "O'Brien et al., J Am Coll Cardiol 2015", scores: { 'orbit': { name: 'ORBIT', points: {0:0.8, 1:1.7, 2:2.8, 3:3.8, 4:5.2, 5:6.5, 6:6.9, 7:7.5}, unit: 'Annual Major Bleed Risk (%)' } } },
             'pe_mortality': { name: 'Pulmonary Embolism (Mortality Risk)', source: 'Jiménez et al., Thorax 2010; Donzé et al. Arch Intern Med 2008', scores: { 'sPESI': { name: 'sPESI (simplified)', points: { '0': 1.1, '≥1': 8.9 }, unit: '30-Day Mortality Risk (%)' }, 'PESI': { name: 'PESI Score', points: { 'I (≤65)': 1.1, 'II (66-85)': 3.5, 'III (86-105)': 6.5, 'IV (106-125)': 10.4, 'V (>125)': 24.5}, unit: '30-Day Mortality Risk (%)' } } },
-            'post_arrest': { name: 'Post-Cardiac Arrest Prognosis', source: 'Pareek et al., Resuscitation 2021', scores: { 'miracle2': { name: 'MIRACLE₂', points: {0:1.7, 1:3.1, 2:6.3, 3:11.2, 4:18.4, 5:30.6, 6:45.6, 7:58.2, 8:76.8, 9:88.5}, unit: 'Poor Neurological Outcome Risk (%)' } } },
             'tia_stroke': { name: 'TIA (Subsequent Stroke Risk)', source: 'Perry et al., CMAJ 2011', scores: { 'abcd2': { name: 'ABCD²', points: {'0-1':0, '2':1.3, '3':3.1, '4':6.0, '5':8.7, '6-7':12.2}, unit: '7-Day Stroke Risk (%)' } } },
-            'anaesthetic_risk': { name: 'Anaesthetic / Surgical Risk', source: 'P-POSSUM, The National Confidential Enquiry into Patient Outcome and Death (NCEPOD)', scores: { 'possom': { name: 'P-POSSUM Mortality', points: { '1-10': 1, '11-20': 4, '21-30': 10, '31-40': 20, '41-50': 35, '>50': 55}, unit: '30-Day Mortality Risk (%)' } } },
         };
         
         const state = {
@@ -173,8 +168,8 @@
                 specificity: 90, 
                 prevalence: 10, 
                 population: 1000,
-                scenarioName: 'Custom values...',
-                scenarioDescription: 'Enter custom values for sensitivity, specificity, and prevalence to model a specific test.'
+                scenarioRule: 'custom',
+                scenarioScore: 'custom',
             },
             risk: { risk: 5, population: 100 },
             reduction: { baselineRisk: 10, treatmentRisk: 6, population: 100 },
@@ -349,29 +344,26 @@
         }
         
         function renderDiagnosticTab() {
-            let scenarioOptions = '';
-            let lastGroup = "";
+            let ruleOptions = '';
             for (const key in diagScenarios) {
-                const scenario = diagScenarios[key];
-                if (scenario.group !== lastGroup) {
-                    if (lastGroup !== "") scenarioOptions += '</optgroup>';
-                    scenarioOptions += `<optgroup label="${scenario.group}">`;
-                    lastGroup = scenario.group;
-                }
-                const isSelected = state.diagnostic.scenarioName === scenario.name;
-                scenarioOptions += `<option value="${key}" ${isSelected ? 'selected' : ''}>${scenario.name}</option>`;
+                const rule = diagScenarios[key];
+                const isSelected = state.diagnostic.scenarioRule === key;
+                ruleOptions += `<option value="${key}" ${isSelected ? 'selected' : ''}>${rule.name}</option>`;
             }
-            scenarioOptions += '</optgroup>';
 
             const scenarios = `
-                <div class="mb-8 print-hidden">
-                    <label for="diag-scenario-select" class="block text-sm font-medium text-gray-700 mb-2">Common Scenarios (pre-fills values below)</label>
-                    <select id="diag-scenario-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg">${scenarioOptions}</select>
-                    <div id="diag-source" class="text-xs text-gray-500 mt-2"></div>
+                <div class="grid md:grid-cols-2 gap-6 mb-8 print-hidden">
+                    <div>
+                        <label for="diag-rule-select" class="block text-sm font-medium text-gray-700 mb-2">Clinical Rule / Tool</label>
+                        <select id="diag-rule-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg">${ruleOptions}</select>
+                    </div>
+                    <div id="diag-score-container"></div>
                 </div>`;
             
+            const currentRule = diagScenarios[state.diagnostic.scenarioRule];
+            const currentScore = currentRule.scores[state.diagnostic.scenarioScore];
             const results = calculateDiagnostic();
-            const { population, scenarioName, scenarioDescription } = state.diagnostic;
+            const { population } = state.diagnostic;
             const displayTotal = Math.min(population, 1000);
             const displayedTP = Math.round((results.truePositive / population) * displayTotal);
             const displayedFN = Math.round((results.falseNegative / population) * displayTotal);
@@ -392,12 +384,12 @@
             
             const visuals = `
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Results for: <span class="text-blue-900">${scenarioName}</span></h3>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Results for: <span class="text-blue-900">${currentRule.name} (${currentScore.name})</span></h3>
                     <h4 class="text-lg font-medium text-gray-800 mb-4">For ${population} People</h4>
                     <div class="grid population-grid gap-1 max-w-2xl">${iconsHtml}</div>${footer}
                 </div>
                 <div class="mt-4 bg-blue-50 border-l-4 border-blue-500 p-4">
-                    <p class="text-blue-800 text-sm">${scenarioDescription}</p>
+                    <p class="text-blue-800 text-sm">${currentRule.description}</p>
                 </div>
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900 mb-3 mt-6">Understanding the Four Outcomes</h3>
@@ -411,32 +403,58 @@
 
             renderTab('Diagnostic Test Performance', 'This shows how a test performs for a whole population.', inputs, visuals, scenarios);
 
-            const scenarioSelect = document.getElementById('diag-scenario-select');
-            const sourceDiv = document.getElementById('diag-source');
-            sourceDiv.innerHTML = diagScenarios[scenarioSelect.value]?.source ? `Data source: <em>${diagScenarios[scenarioSelect.value].source}</em>` : '';
+            const ruleSelect = document.getElementById('diag-rule-select');
+            const scoreContainer = document.getElementById('diag-score-container');
 
-            scenarioSelect.addEventListener('change', e => {
-                const scenario = diagScenarios[e.target.value];
-                if (scenario) {
-                    state.diagnostic.sensitivity = scenario.sens;
-                    state.diagnostic.specificity = scenario.spec;
-                    state.diagnostic.prevalence = scenario.prev;
-                    state.diagnostic.scenarioName = scenario.name;
-                    state.diagnostic.scenarioDescription = scenario.description;
-                    render();
+            function updateScoreDropdown() {
+                const selectedRuleKey = ruleSelect.value;
+                const rule = diagScenarios[selectedRuleKey];
+                let scoreOptions = '';
+                for (const key in rule.scores) {
+                    const score = rule.scores[key];
+                    const isSelected = state.diagnostic.scenarioScore === key;
+                    scoreOptions += `<option value="${key}" ${isSelected ? 'selected' : ''}>${score.name}</option>`;
                 }
+                if (Object.keys(rule.scores).length > 1) {
+                    scoreContainer.innerHTML = `<label for="diag-score-select" class="block text-sm font-medium text-gray-700 mb-2">Score / Threshold</label><select id="diag-score-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg">${scoreOptions}</select>`;
+                    document.getElementById('diag-score-select').addEventListener('change', e => {
+                        state.diagnostic.scenarioScore = e.target.value;
+                        const newScoreData = rule.scores[e.target.value];
+                        state.diagnostic.sensitivity = newScoreData.sens;
+                        state.diagnostic.specificity = newScoreData.spec;
+                        state.diagnostic.prevalence = newScoreData.prev;
+                        render();
+                    });
+                } else {
+                    scoreContainer.innerHTML = '';
+                }
+            }
+            
+            ruleSelect.addEventListener('change', e => {
+                const newRuleKey = e.target.value;
+                state.diagnostic.scenarioRule = newRuleKey;
+                const newRule = diagScenarios[newRuleKey];
+                const firstScoreKey = Object.keys(newRule.scores)[0];
+                state.diagnostic.scenarioScore = firstScoreKey;
+                const newScoreData = newRule.scores[firstScoreKey];
+                state.diagnostic.sensitivity = newScoreData.sens;
+                state.diagnostic.specificity = newScoreData.spec;
+                state.diagnostic.prevalence = newScoreData.prev;
+                render();
             });
 
             function setCustom() {
-                state.diagnostic.scenarioName = diagScenarios['custom'].name;
-                state.diagnostic.scenarioDescription = diagScenarios['custom'].description;
+                state.diagnostic.scenarioRule = 'custom';
+                state.diagnostic.scenarioScore = 'custom';
                 render();
             }
 
             document.getElementById('diag-sens').addEventListener('change', e => { state.diagnostic.sensitivity = parseFloat(e.target.value); setCustom(); });
             document.getElementById('diag-spec').addEventListener('change', e => { state.diagnostic.specificity = parseFloat(e.target.value); setCustom(); });
             document.getElementById('diag-prev').addEventListener('change', e => { state.diagnostic.prevalence = parseFloat(e.target.value); setCustom(); });
-            document.getElementById('diag-pop').addEventListener('change', e => { state.diagnostic.population = parseInt(e.target.value); render(); }); // Population change doesn't make it "custom"
+            document.getElementById('diag-pop').addEventListener('change', e => { state.diagnostic.population = parseInt(e.target.value); render(); });
+            
+            updateScoreDropdown();
         }
         
         function renderRiskTab() {
@@ -460,16 +478,35 @@
             const inputs = `
                 <div><label for="risk-percent" class="block text-sm font-medium text-gray-700 mb-2">Risk (%)</label><input id="risk-percent" type="number" value="${risk}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="0.1"></div>
                 <div><label for="risk-pop" class="block text-sm font-medium text-gray-700 mb-2">Population Size</label><select id="risk-pop" class="w-full px-4 py-2 border border-gray-300 rounded-lg"><option value="100" ${population === 100 ? 'selected' : ''}>100</option><option value="1000" ${population === 1000 ? 'selected' : ''}>1000</option></select></div>`;
-            const visuals = `
+            
+            const visuals = `<div id="risk-visuals-container" class="space-y-8">
                 <div><h3 class="text-lg font-semibold text-gray-900 mb-4">Icon Array: ${affected} out of ${population} affected</h3>${createIconArray(affected, population, 'bg-red-500', 'Affected')}</div>
                 <div><h3 class="text-lg font-semibold text-gray-900 mb-4">Stacked Bar</h3>${createStackedBar(affected, population, 'bg-red-500', 'Affected')}</div>
-                <div class="bg-blue-50 border-l-4 border-blue-500 p-4"><p class="text-blue-800"><strong>${risk.toFixed(1)}% risk</strong> means approximately <strong>${affected} out of every ${population} people</strong> may be affected.</p></div>`;
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4"><p class="text-blue-800"><strong>${risk.toFixed(1)}% risk</strong> means approximately <strong>${affected} out of every ${population} people</strong> may be affected.</p></div>
+                </div>`;
+
             renderTab('Absolute Risk Visualiser', 'Show risk as people affected out of a population.', inputs, visuals, scenarios);
 
-            document.getElementById('risk-percent').addEventListener('change', e => { state.risk.risk = parseFloat(e.target.value); render(); });
-            document.getElementById('risk-pop').addEventListener('change', e => { state.risk.population = parseInt(e.target.value); render(); });
-            const riskCatSelect = document.getElementById('risk-cat-select');
-            riskCatSelect.addEventListener('change', e => {
+            function updateRiskVisuals() {
+                const currentRisk = state.risk.risk;
+                const currentPop = state.risk.population;
+                const currentAffected = Math.round((currentRisk / 100) * currentPop);
+                 document.getElementById('risk-visuals-container').innerHTML = `
+                    <div><h3 class="text-lg font-semibold text-gray-900 mb-4">Icon Array: ${currentAffected} out of ${currentPop} affected</h3>${createIconArray(currentAffected, currentPop, 'bg-red-500', 'Affected')}</div>
+                    <div><h3 class="text-lg font-semibold text-gray-900 mb-4">Stacked Bar</h3>${createStackedBar(currentAffected, currentPop, 'bg-red-500', 'Affected')}</div>
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4"><p class="text-blue-800"><strong>${currentRisk.toFixed(1)}% risk</strong> means approximately <strong>${currentAffected} out of every ${currentPop} people</strong> may be affected.</p></div>`;
+            }
+
+            document.getElementById('risk-percent').addEventListener('change', e => { 
+                state.risk.risk = parseFloat(e.target.value); 
+                updateRiskVisuals();
+            });
+            document.getElementById('risk-pop').addEventListener('change', e => { 
+                state.risk.population = parseInt(e.target.value); 
+                updateRiskVisuals();
+            });
+
+            document.getElementById('risk-cat-select').addEventListener('change', e => {
                 const categoryKey = e.target.value;
                 const scoreContainer = document.getElementById('risk-score-inputs');
                 const sourceContainer = document.getElementById('risk-source');
@@ -498,7 +535,8 @@
                     const updateRiskFromCalc = () => {
                         const riskValue = score.points[pointsSelect.value];
                         state.risk.risk = riskValue;
-                        render();
+                        document.getElementById('risk-percent').value = riskValue;
+                        updateRiskVisuals();
                     };
                     pointsSelect.addEventListener('change', updateRiskFromCalc);
                     updateRiskFromCalc();
