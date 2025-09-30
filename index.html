@@ -1,717 +1,611 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Medical Risk Communication Tool - WMEBEM</title>
     <meta name="description" content="Evidence-based medical risk communication tool for healthcare professionals to visualise diagnostic test performance, risk reduction, and biomarker context.">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" xintegrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
+        .print-only { display: none !important; }
         @media print {
             body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
             .print-hidden { display: none !important; }
+            .print-only { display: block !important; }
             .print-bg-white { background-color: white !important; }
             .print-text-gray { color: #111827 !important; }
+            .print-no-shadow { box-shadow: none !important; }
+            .print-no-border { border: none !important; }
+            @page { 
+                margin: 2cm;
+                @bottom-center {
+                    content: "This information is an aid to your consultation and does not replace professional medical advice.";
+                    font-size: 8pt;
+                    color: #666;
+                }
+            }
         }
+        .population-grid { display: grid; }
+        @media (max-width: 640px) { .population-grid { grid-template-columns: repeat(20, minmax(0, 1fr)) !important; } }
+        @media (min-width: 641px) { .population-grid { grid-template-columns: repeat(40, minmax(0, 1fr)) !important; } }
     </style>
-  <style>
-    .population-grid {
-      display: grid;
-    }
-    @media (max-width: 640px) {
-      .population-grid { grid-template-columns: repeat(20, minmax(0, 1fr)) !important; }
-    }
-    @media (min-width: 641px) {
-      .population-grid { grid-template-columns: repeat(40, minmax(0, 1fr)) !important; }
-    }
-  </style>
 </head>
-<body class="bg-gray-50">
-    <div class="min-h-screen">
-        <div class="bg-blue-900 text-white py-6 px-4 print-bg-white print-text-gray">
+<body class="bg-gray-50 flex flex-col min-h-screen">
+    <div class="flex-grow">
+        <header class="bg-blue-900 text-white py-6 px-4 print-bg-white print-text-gray">
             <div class="max-w-6xl mx-auto flex items-center justify-between">
                 <div>
                     <h1 class="text-3xl font-bold mb-2">Medical Risk Communication Tool</h1>
                     <p class="text-blue-100 print-text-gray">Evidence-based visualisation for patient communication</p>
                 </div>
-                <img src="https://i.imgur.com/09eFLTO.png" alt="WMEBEM Logo" class="h-16 md:h-20">
+                <a href="https://wmebem.com" target="_blank" rel="noopener noreferrer" aria-label="Visit the WMEBEM website">
+                    <img src="https://i.imgur.com/09eFLTO.png" alt="WMEBEM Logo" class="h-16 md:h-20 print-hidden">
+                </a>
             </div>
-        </div>
+        </header>
 
-        <div class="max-w-6xl mx-auto px-4 py-6">
+        <main class="max-w-6xl mx-auto px-4 py-6">
             <div id="tabs" class="flex gap-2 mb-6 overflow-x-auto print-hidden">
-                <button onclick="switchTab('diagnostic')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="diagnostic">
-                    Diagnostic Test
-                </button>
-                <button onclick="switchTab('risk')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="risk">
-                    Risk Visualiser
-                </button>
-                <button onclick="switchTab('reduction')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="reduction">
-                    Risk Reduction
-                </button>
-                <button onclick="switchTab('nnt')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="nnt">
-                    NNT/NNH
-                </button>
-                <button onclick="switchTab('relative')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="relative">
-                    Relative vs Absolute
-                </button>
-                <button onclick="switchTab('biomarker')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="biomarker">
-                    Biomarker Context
-                </button>
-                <button onclick="switchTab('likelihood')" class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="likelihood">
-                    Bayes Calculator
-                </button>
+                <button class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="diagnostic">Diagnostic Test</button>
+                <button class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="risk">Risk Visualiser</button>
+                <button class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="reduction">Risk Reduction</button>
+                <button class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="nnt">NNT/NNH</button>
+                <button class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="relative">Relative vs Absolute</button>
+                <button class="tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors" data-tab="likelihood">Bayes Calculator</button>
             </div>
 
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <div class="flex justify-end gap-2 mb-4 print-hidden">
-                    <button onclick="window.print()" class="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                        </svg>
-                        Print
-                    </button>
+            <div id="handout-container" class="bg-white rounded-lg shadow-md p-6 print-no-shadow print-no-border">
+                <div class="print-only hidden">
+                    <div class="flex justify-between items-start mb-6 border-b-2 border-gray-300 pb-4">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">Patient Information Handout</h2>
+                            <p class="text-sm text-gray-600">This sheet summarises the information we discussed.</p>
+                        </div>
+                        <img src="https://i.imgur.com/09eFLTO.png" alt="WMEBEM Logo" class="h-16">
+                    </div>
+                    <div class="grid grid-cols-2 gap-8 text-sm mb-8">
+                        <div>
+                            <p class="font-bold text-gray-800">Patient Name:</p>
+                            <p id="pdf-display-name" class="mt-1 text-gray-700 h-6"></p>
+                        </div>
+                        <div>
+                            <p class="font-bold text-gray-800">Date:</p>
+                            <p id="pdf-display-date" class="mt-1 text-gray-700 h-6"></p>
+                        </div>
+                    </div>
                 </div>
 
+                <div class="flex justify-end gap-2 mb-4 print-hidden">
+                    <button id="generate-pdf-btn" class="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                        <svg id="pdf-btn-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        <span id="pdf-btn-text">Generate PDF</span>
+                    </button>
+                </div>
+                
                 <div id="tab-content"></div>
+
+                <div class="print-only hidden">
+                    <div class="mt-8 pt-6 border-t-2 border-gray-300">
+                        <p class="font-bold text-gray-800">Clinician's Notes:</p>
+                        <p id="pdf-display-notes" class="mt-2 text-gray-700 text-sm whitespace-pre-wrap min-h-[100px]"></p>
+                    </div>
+                    <div style="margin-top: 100px; text-align: center; font-size: 8pt; color: #6b7280;">
+                        <p>This information leaflet is an aid to your consultation and does not replace professional medical advice. Please discuss any questions with your healthcare provider.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="pdf-personalisation-inputs" class="mt-8 bg-white rounded-lg shadow-md p-6 print-hidden">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Personalise PDF Handout</h3>
+                <p class="text-sm text-gray-600 mb-4">The details entered here will appear on the generated patient leaflet.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="pdf-patient-name" class="block text-sm font-medium text-gray-700">Patient Name</label>
+                        <input type="text" id="pdf-patient-name" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="e.g. John Smith">
+                    </div>
+                    <div>
+                        <label for="pdf-date" class="block text-sm font-medium text-gray-700">Date</label>
+                        <input type="text" id="pdf-date" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="pdf-clinician-notes" class="block text-sm font-medium text-gray-700">Clinician's Notes</label>
+                        <textarea id="pdf-clinician-notes" rows="4" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="e.g. This shows the risk of X and why we are recommending treatment Y..."></textarea>
+                    </div>
+                </div>
             </div>
 
             <div class="mt-8 bg-white rounded-lg shadow-md p-6 print-hidden">
                 <h3 class="text-lg font-semibold text-gray-900 mb-3">Evidence-Based Communication Tips</h3>
                 <ul class="space-y-2 text-gray-700 text-sm">
-                    <li class="flex items-start">
-                        <span class="text-blue-900 mr-2">•</span>
-                        <span>Use numbers (even approximate) rather than verbal terms like "rare" or "common"</span>
-                    </li>
-                    <li class="flex items-start">
-                        <span class="text-blue-900 mr-2">•</span>
-                        <span>Use consistent denominators (e.g., per 100 or per 1000) instead of varying "1 in X" formats</span>
-                    </li>
-                    <li class="flex items-start">
-                        <span class="text-blue-900 mr-2">•</span>
-                        <span>Present absolute risk differences, not relative reductions, to avoid overestimating benefits</span>
-                    </li>
-                    <li class="flex items-start">
-                        <span class="text-blue-900 mr-2">•</span>
-                        <span>Show both numerator and denominator in visual displays (icon arrays or stacked bars)</span>
-                    </li>
-                    <li class="flex items-start">
-                        <span class="text-blue-900 mr-2">•</span>
-                        <span>Provide context for biomarkers: normal ranges, targets, and action thresholds</span>
-                    </li>
+                    <li><span class="text-blue-900 mr-2">•</span>Use numbers (even approximate) rather than verbal terms like "rare" or "common"</li>
+                    <li><span class="text-blue-900 mr-2">•</span>Use consistent denominators (e.g., per 100 or per 1000)</li>
+                    <li><span class="text-blue-900 mr-2">•</span>Present absolute risk differences, not relative reductions</li>
+                    <li><span class="text-blue-900 mr-2">•</span>Show both numerator and denominator in visual displays</li>
                 </ul>
-                <p class="text-xs text-gray-500 mt-4">Based on: Zikmund-Fisher BJ, Thorpe A, Fagerlin A. How to Communicate Medical Numbers. JAMA. 2025.</p>
             </div>
-        </div>
+        </main>
     </div>
+    
+    <footer class="text-center py-6 px-4 text-xs text-gray-500 print-hidden">
+        <p>&copy; <span id="current-year"></span> West Midlands Evidence Based Emergency Medicine Ltd. Created by Dr Jake Turner.</p>
+        <p class="mt-1">All rights reserved. This tool is provided for free use in clinical practice. Reproduction, modification, or distribution is prohibited without express written consent.</p>
+    </footer>
 
     <script>
-        var state = {
-            activeTab: 'diagnostic',
-            diagnostic: {
-                sensitivity: 95,
-                specificity: 90,
-                prevalence: 10,
-                population: 1000
-            },
-            risk: {
-                risk: 5,
-                population: 100
-            },
-            reduction: {
-                baselineRisk: 10,
-                treatmentRisk: 6,
-                population: 100
-            },
-            nnt: {
-                baselineRisk: 10,
-                treatmentRisk: 6
-            },
-            relative: {
-                baselineRisk: 10,
-                relativeReduction: 50
-            },
-            biomarker: {
-                value: 8.3,
-                unit: '%',
-                normalMin: 4.0,
-                normalMax: 5.6,
-                targetValue: 7.0,
-                thresholdValue: '',
-                biomarkerName: 'HbA1c'
-            },
-            likelihood: {
-                preTestProb: 20,
-                likelihoodRatio: 5
-            }
+        // --- DATA AND STATE MANAGEMENT ---
+        const diagScenarios = {
+            'custom': { group: 'Custom', name: 'Custom values...', sens: 95, spec: 90, prev: 10, source: null, description: 'Enter custom values for sensitivity, specificity, and prevalence to model a specific test.' },
+            'heart_low': { group: 'Cardiology', name: 'HEART Score (0-3) for 30-day MACE', sens: 97, spec: 50, prev: 18, source: 'Laureano-Melo R et al., Am J Emerg Med 2021', description: 'The HEART score helps predict the 6-week risk of a Major Adverse Cardiac Event (MACE) in patients with chest pain. A positive result (higher score) suggests a higher risk of MACE.' },
+            'heart_mod': { group: 'Cardiology', name: 'HEART Score (4-6) for 30-day MACE', sens: 80, spec: 80, prev: 18, source: 'Sixma et al. Neth Heart J 2008', description: 'The HEART score helps predict the 6-week risk of a Major Adverse Cardiac Event (MACE) in patients with chest pain. A positive result (higher score) suggests a higher risk of MACE.' },
+            'rosier': { group: 'Neurology', name: 'ROSIER Score (>0) for Stroke', sens: 93, spec: 70, prev: 65, source: 'Nor et al., Lancet Neurol 2005', description: 'The ROSIER score helps differentiate stroke from stroke mimics. A positive result (>0) suggests a higher likelihood of stroke.' },
+            'neg_ct_sah': { group: 'Neurology', name: 'Neg CT Head (<6h) for SAH', sens: 99.9, spec: 99.9, prev: 0.1, source: 'Perry JJ et al., BMJ 2011 (Risk of missed SAH is ~1 in 2300)', description: 'This scenario represents the high negative predictive value of a non-contrast CT head scan performed within 6 hours of headache onset for subarachnoid haemorrhage (SAH). A negative result (no blood seen) makes SAH extremely unlikely.' },
+            'sah': { group: 'Neurology', name: 'Ottawa SAH Rule for SAH', sens: 99, spec: 15, prev: 2, source: 'Perry JJ et al., JAMA 2013', description: 'The Ottawa SAH Rule is a clinical decision rule to identify patients with acute headache who may have a subarachnoid haemorrhage (SAH) and require further investigation. A positive result (rule is triggered) suggests SAH is possible.' },
+            'cch': { group: 'Trauma', name: 'Canadian CT Head Rule', sens: 100, spec: 38, prev: 1, source: 'Stiell et al., Lancet 2001', description: 'The Canadian CT Head Rule identifies adults with minor head injury who are at high risk for clinically important brain injury and need a CT scan. A positive result (rule is triggered) indicates a need for imaging.' },
+            'pecarn': { group: 'Trauma', name: 'PECARN Head CT Rule (age < 2y)', sens: 100, spec: 54, prev: 1, source: 'Kuppermann et al., Lancet 2009', description: 'The PECARN rule helps decide which children with minor head trauma need a CT scan. A positive result (rule is triggered) suggests a higher risk of clinically important traumatic brain injury.' },
+            'nexus': { group: 'Trauma', name: 'NEXUS C-Spine Rule', sens: 99, spec: 13, prev: 2.5, source: 'Hoffman et al., NEJM 2000', description: 'The NEXUS criteria are used to clear patients of cervical spine injury without the need for imaging. A positive result (any criterion is met) means an injury cannot be excluded, and imaging is needed.' },
+            'ccs': { group: 'Trauma', name: 'Canadian C-Spine Rule', sens: 99, spec: 45, prev: 2.5, source: 'Stiell et al., NEJM 2001', description: 'The Canadian C-Spine Rule is a decision tool to determine the need for cervical spine imaging in alert, stable trauma patients. A positive result (rule is triggered) indicates imaging is required.' },
+            'oar': { group: 'Trauma', name: 'Ottawa Ankle Rules', sens: 98, spec: 35, prev: 15, source: 'Stiell et al., JAMA 1994', description: 'The Ottawa Ankle Rules determine whether an X-ray is needed for ankle injuries. A positive result (pain in specific areas or inability to bear weight) indicates an X-ray is required to check for a fracture.' },
+            'okr': { group: 'Trauma', name: 'Ottawa Knee Rules', sens: 99, spec: 49, prev: 6, source: 'Stiell et al., JAMA 1997', description: 'The Ottawa Knee Rules determine whether an X-ray is needed for knee injuries. A positive result (meeting any of the criteria) indicates an X-ray is required to check for a fracture.' },
+            'perc': { group: 'VTE / Respiratory', name: 'PERC Rule for PE', sens: 97, spec: 22, prev: 2, source: 'Kline JA et al., J Thromb Haemost 2008', description: 'The PERC (Pulmonary Embolism Rule-out Criteria) rule helps to identify patients with a very low risk of pulmonary embolism (PE) who do not need further testing. A negative result (all criteria are negative) effectively rules out PE.' },
+            'wells_dvt': { group: 'VTE / Respiratory', name: 'Wells Score (≤1) for DVT', sens: 85, spec: 55, prev: 20, source: 'Wells et al., Lancet 2000', description: "The Wells' score predicts the pre-test probability of deep vein thrombosis (DVT). A positive test (higher score) indicates a higher likelihood of DVT." },
+            'geneva': { group: 'VTE / Respiratory', name: 'Geneva Score (≤2) for PE', sens: 88, spec: 52, prev: 20, source: 'Klok et al., Arch Intern Med 2008', description: 'The Geneva score predicts the pre-test probability of pulmonary embolism (PE). A positive test (higher score) indicates a higher likelihood of PE.' },
+            'curb65': { group: 'VTE / Respiratory', name: 'CURB-65 (≥2) for Pneumonia Mortality', sens: 57, spec: 79, prev: 9, source: 'Lim et al., Thorax 2003', description: 'The CURB-65 score assesses the severity of community-acquired pneumonia to help decide on admission. A positive test (higher score) indicates higher 30-day mortality risk and likely need for inpatient care.' },
+            'centor': { group: 'Infectious Disease', name: 'Centor Score (≥3) for Strep Throat', sens: 50, spec: 85, prev: 10, source: 'Fine et al., Ann Intern Med 2012', description: 'The Centor Score helps predict the likelihood of Group A streptococcal infection in patients with a sore throat. A positive test (higher score) suggests bacterial pharyngitis is more likely.' },
+            'feverpain': { group: 'Infectious Disease', name: 'FeverPAIN Score (≥4) for Strep Throat', sens: 74, spec: 78, prev: 10, source: 'Little et al., BMJ 2014', description: 'The FeverPAIN score, similar to Centor, helps predict the likelihood of streptococcal pharyngitis. A positive test (higher score) increases the probability of a bacterial cause.' },
+            'gbs': { group: 'Gastroenterology', name: 'Glasgow-Blatchford Score (0) for UGI Bleed', sens: 99, spec: 28, prev: 40, source: 'Stanley et al., Lancet 2000', description: 'The Glasgow-Blatchford Score assesses the need for intervention (like transfusion or endoscopy) in patients with an upper GI bleed. A score of 0 (positive result for low risk) suggests outpatient management may be safe.' },
+            'mallampati': { group: 'Anaesthetics', name: 'Mallampati (III/IV) for Difficult Laryngoscopy', sens: 42, spec: 87, prev: 10, source: 'Lee et al., Br J Anaesth 2006', description: 'The Mallampati score is used to predict the ease of endotracheal intubation. A positive test (Class III or IV) suggests a more difficult intubation may be encountered.' }
         };
 
-        function createIconArray(affected, total, colour, label) {
-            var displayTotal = Math.min(total, 1000);
-            var html = '<div class="grid population-grid gap-1 max-w-2xl">';
-            var affectedCount = (total > 0) ? Math.round((affected / total) * displayTotal) : 0;
+        const riskScenarios = {
+            'af_stroke': { name: 'Atrial Fibrillation (Stroke Risk)', source: 'NICE Guideline [NG196]', scores: { 'chads_vasc': { name: 'CHA₂DS₂-VASc', points: {0:0.2, 1:0.6, 2:2.2, 3:3.2, 4:4.8, 5:7.2, 6:9.7, 7:11.2, 8:10.8, 9:12.2}, unit: 'Annual Stroke Risk (%)' } } },
+            'af_bleed': { name: 'Atrial Fibrillation (Bleeding Risk)', source: "O'Brien et al., J Am Coll Cardiol 2015", scores: { 'orbit': { name: 'ORBIT', points: {0:0.8, 1:1.7, 2:2.8, 3:3.8, 4:5.2, 5:6.5, 6:6.9, 7:7.5}, unit: 'Annual Major Bleed Risk (%)' } } },
+            'pe_mortality': { name: 'Pulmonary Embolism (Mortality Risk)', source: 'Jiménez et al., Thorax 2010; Donzé et al. Arch Intern Med 2008', scores: { 'sPESI': { name: 'sPESI (simplified)', points: { '0': 1.1, '≥1': 8.9 }, unit: '30-Day Mortality Risk (%)' }, 'PESI': { name: 'PESI Score', points: { 'I (≤65)': 1.1, 'II (66-85)': 3.5, 'III (86-105)': 6.5, 'IV (106-125)': 10.4, 'V (>125)': 24.5}, unit: '30-Day Mortality Risk (%)' } } },
+            'post_arrest': { name: 'Post-Cardiac Arrest Prognosis', source: 'Pareek et al., Resuscitation 2021', scores: { 'miracle2': { name: 'MIRACLE₂', points: {0:1.7, 1:3.1, 2:6.3, 3:11.2, 4:18.4, 5:30.6, 6:45.6, 7:58.2, 8:76.8, 9:88.5}, unit: 'Poor Neurological Outcome Risk (%)' } } },
+            'tia_stroke': { name: 'TIA (Subsequent Stroke Risk)', source: 'Perry et al., CMAJ 2011', scores: { 'abcd2': { name: 'ABCD²', points: {'0-1':0, '2':1.3, '3':3.1, '4':6.0, '5':8.7, '6-7':12.2}, unit: '7-Day Stroke Risk (%)' } } },
+            'anaesthetic_risk': { name: 'Anaesthetic / Surgical Risk', source: 'P-POSSUM, The National Confidential Enquiry into Patient Outcome and Death (NCEPOD)', scores: { 'possom': { name: 'P-POSSUM Mortality', points: { '1-10': 1, '11-20': 4, '21-30': 10, '31-40': 20, '41-50': 35, '>50': 55}, unit: '30-Day Mortality Risk (%)' } } },
+        };
+        
+        const state = {
+            activeTab: 'diagnostic',
+            diagnostic: { 
+                sensitivity: 95, 
+                specificity: 90, 
+                prevalence: 10, 
+                population: 1000,
+                scenarioName: 'Custom values...',
+                scenarioDescription: 'Enter custom values for sensitivity, specificity, and prevalence to model a specific test.'
+            },
+            risk: { risk: 5, population: 100 },
+            reduction: { baselineRisk: 10, treatmentRisk: 6, population: 100 },
+            nnt: { baselineRisk: 10, treatmentRisk: 6 },
+            relative: { baselineRisk: 10, relativeReduction: 50 },
+            likelihood: { preTestProb: 20, likelihoodRatio: 5 }
+        };
 
-            for (var i = 0; i < displayTotal; i++) {
-                var isAffected = i < affectedCount;
-                var bgColour = isAffected ? colour : 'bg-gray-200';
-                var title = isAffected ? label : 'Not affected';
-                html += '<div class="w-3 h-3 rounded-sm ' + bgColour + '" title="' + title + '"></div>';
-            }
+        // --- UTILITY AND CALCULATION FUNCTIONS ---
+
+        function generatePdf() {
+            const pdfBtn = document.getElementById('generate-pdf-btn');
+            const pdfBtnText = document.getElementById('pdf-btn-text');
+            const originalBtnText = pdfBtnText.textContent;
+            pdfBtnText.textContent = 'Generating...';
+            pdfBtn.disabled = true;
+
+            const patientName = document.getElementById('pdf-patient-name').value;
+            const consultationDate = document.getElementById('pdf-date').value;
+            const clinicianNotes = document.getElementById('pdf-clinician-notes').value;
+
+            document.getElementById('pdf-display-name').textContent = patientName || ' ';
+            document.getElementById('pdf-display-date').textContent = consultationDate || ' ';
+            document.getElementById('pdf-display-notes').textContent = clinicianNotes || 'No specific notes were added by the clinician.';
+
+            const element = document.getElementById('handout-container');
+            const opt = {
+                margin: 0.75,
+                filename: 'Patient_Information_Leaflet.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
             
-            html += '</div>';
-            if (total > 1000) {
-                html += '<p class="text-xs text-gray-500 mt-2">Visualising ' + displayTotal + ' of ' + total + ' people.</p>';
+            const printOnlyElements = element.querySelectorAll('.print-only');
+            printOnlyElements.forEach(el => el.style.display = 'block');
+
+            html2pdf().from(element).set(opt).save().then(() => {
+                printOnlyElements.forEach(el => el.style.display = 'none');
+                pdfBtnText.textContent = originalBtnText;
+                pdfBtn.disabled = false;
+            });
+        }
+
+        function createIconArray(affected, total, colour, label) {
+            const displayTotal = Math.min(total, 1000);
+            const affectedCount = (total > 0) ? Math.round((affected / total) * displayTotal) : 0;
+            
+            let iconsHtml = '';
+            for (let i = 0; i < displayTotal; i++) {
+                const isAffected = i < affectedCount;
+                const bgColour = isAffected ? colour : 'bg-gray-200';
+                const title = isAffected ? label : 'Not affected';
+                iconsHtml += `<div class="w-3 h-3 rounded-sm ${bgColour}" title="${title}"></div>`;
             }
-            return html;
+            const footerText = total > 1000 ? `<p class="text-xs text-gray-500 mt-2">Visualising ${displayTotal} of ${total} people.</p>` : '';
+            return `<div class="grid population-grid gap-1 max-w-2xl">${iconsHtml}</div>${footerText}`;
         }
 
         function createStackedBar(affected, total, colour, label) {
-            var percentage = (affected / total) * 100;
-            var html = '<div class="w-full max-w-xl">';
-            html += '<div class="h-12 bg-gray-200 rounded-lg overflow-hidden flex">';
-            html += '<div class="' + colour + ' flex items-center justify-center text-white font-semibold text-sm" style="width: ' + percentage + '%">';
-            html += (percentage > 10 ? affected : '');
-            html += '</div>';
-            html += '<div class="flex-1 flex items-center justify-center text-gray-600 text-sm">';
-            if (percentage <= 10) {
-                html += '<span class="text-gray-700 font-semibold mr-2">' + affected + '</span>';
-            }
-            html += (total - affected);
-            html += '</div>';
-            html += '</div>';
-            html += '<div class="flex justify-between text-xs text-gray-600 mt-1">';
-            html += '<span>' + label + '</span>';
-            html += '<span>Not affected</span>';
-            html += '</div>';
-            html += '</div>';
-            return html;
+            const percentage = (total > 0) ? (affected / total) * 100 : 0;
+            return `
+                <div class="w-full max-w-xl">
+                    <div class="h-12 bg-gray-200 rounded-lg overflow-hidden flex">
+                        <div class="${colour} flex items-center justify-center text-white font-semibold text-sm" style="width: ${percentage}%">
+                            ${percentage > 10 ? Math.round(affected) : ''}
+                        </div>
+                        <div class="flex-1 flex items-center justify-center text-gray-600 text-sm">
+                            ${percentage <= 10 ? `<span class="text-gray-700 font-semibold mr-2">${Math.round(affected)}</span>` : ''}
+                            ${Math.round(total - affected)}
+                        </div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-600 mt-1">
+                        <span>${label}</span>
+                        <span>Not affected</span>
+                    </div>
+                </div>
+            `;
         }
 
         function calculateDiagnostic() {
-            var sens = state.diagnostic.sensitivity;
-            var spec = state.diagnostic.specificity;
-            var prev = state.diagnostic.prevalence;
-            var pop = state.diagnostic.population;
-            
-            var diseased = (prev / 100) * pop;
-            var healthy = pop - diseased;
-            var truePositive = (sens / 100) * diseased;
-            var falseNegative = diseased - truePositive;
-            var trueNegative = (spec / 100) * healthy;
-            var falsePositive = healthy - trueNegative;
-            
+            const { sensitivity: sens, specificity: spec, prevalence: prev, population: pop } = state.diagnostic;
+            const diseased = (prev / 100) * pop;
+            const healthy = pop - diseased;
+            const truePositive = (sens / 100) * diseased;
+            const falseNegative = diseased - truePositive;
+            const trueNegative = (spec / 100) * healthy;
+            const falsePositive = healthy - trueNegative;
             return {
-                truePositive: Math.round(truePositive),
-                falseNegative: Math.round(falseNegative),
-                trueNegative: Math.round(trueNegative),
-                falsePositive: Math.round(falsePositive),
-                diseased: Math.round(diseased),
-                healthy: Math.round(healthy)
+                truePositive: Math.round(truePositive), falseNegative: Math.round(falseNegative),
+                trueNegative: Math.round(trueNegative), falsePositive: Math.round(falsePositive),
             };
         }
 
         function calculateNNT() {
-            var base = state.nnt.baselineRisk;
-            var treat = state.nnt.treatmentRisk;
-            var arr = base - treat;
+            const { baselineRisk, treatmentRisk } = state.nnt;
+            const arr = baselineRisk - treatmentRisk;
             if (arr <= 0) return null;
             return Math.round(100 / arr);
         }
 
         function calculateRelativeRisk() {
-            var base = state.relative.baselineRisk;
-            var rel = state.relative.relativeReduction;
-            var absRed = (base * rel) / 100;
-            var newRisk = base - absRed;
-            return {
-                absoluteReduction: absRed.toFixed(1),
-                newRisk: newRisk.toFixed(1)
-            };
+            const { baselineRisk, relativeReduction } = state.relative;
+            const absoluteReduction = (baselineRisk * relativeReduction) / 100;
+            const newRisk = baselineRisk - absoluteReduction;
+            return { absoluteReduction: absoluteReduction.toFixed(1), newRisk: newRisk.toFixed(1) };
         }
         
         function calculateLikelihood() {
-            var preProb = state.likelihood.preTestProb;
-            var lr = state.likelihood.likelihoodRatio;
-
-            if (preProb <= 0 || preProb >= 100 || lr <= 0) {
-                return { postTestProb: null };
-            }
-
-            var preOdds = preProb / (100 - preProb);
-            var postOdds = preOdds * lr;
-            var postProb = (postOdds / (1 + postOdds)) * 100;
-
-            return {
-                postTestProb: postProb
-            };
+            const { preTestProb, likelihoodRatio: lr } = state.likelihood;
+            if (preTestProb <= 0 || preTestProb >= 100 || lr <= 0) return { postTestProb: null };
+            const preOdds = preTestProb / (100 - preTestProb);
+            const postOdds = preOdds * lr;
+            const postProb = (postOdds / (1 + postOdds)) * 100;
+            return { postTestProb: postProb };
         }
         
         function createFaganNomogram(preTestProb, lr, postTestProb) {
-            var svgWidth = 600;
-            var svgHeight = 400;
-            var padding = { top: 50, right: 60, bottom: 40, left: 60 };
-            var axisX = { pre: padding.left + 40, lr: svgWidth / 2, post: svgWidth - padding.right - 40 };
-            var plotHeight = svgHeight - padding.top - padding.bottom;
-
-            var probTicks = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 30, 50, 70, 80, 90, 95, 98, 99];
-            var lrTicks = [1000, 200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01];
-
-            // Map log-odds to Y coordinate
-            var minLogOdds = Math.log(0.001 / 0.999); // Approx 0.1%
-            var maxLogOdds = Math.log(0.999 / 0.001); // Approx 99.9%
-            function probToY(p) {
+            const svgWidth = 600, svgHeight = 400;
+            const padding = { top: 50, right: 60, bottom: 40, left: 60 };
+            const axisX = { pre: padding.left + 40, lr: svgWidth / 2, post: svgWidth - padding.right - 40 };
+            const plotHeight = svgHeight - padding.top - padding.bottom;
+            const probTicks = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 30, 50, 70, 80, 90, 95, 98, 99];
+            const lrTicks = [1000, 200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01];
+            const minLogOdds = Math.log(0.001 / 0.999), maxLogOdds = Math.log(0.999 / 0.001);
+            const probToY = p => {
                 if (p <= 0 || p >= 100) return padding.top + plotHeight;
-                var odds = p / (100 - p);
-                var logOdds = Math.log(odds);
+                const logOdds = Math.log(p / (100 - p));
                 return padding.top + plotHeight * (1 - (logOdds - minLogOdds) / (maxLogOdds - minLogOdds));
-            }
-
-            // Map log(LR) to Y coordinate
-            var minLogLR = Math.log(0.01);
-            var maxLogLR = Math.log(1000);
-            function lrToY(val) {
-                var logVal = Math.log(val);
-                return padding.top + plotHeight * (1 - (logVal - minLogLR) / (maxLogLR - minLogLR));
-            }
+            };
+            const minLogLR = Math.log(0.01), maxLogLR = Math.log(1000);
+            const lrToY = val => padding.top + plotHeight * (1 - (Math.log(val) - minLogLR) / (maxLogLR - minLogLR));
             
-            var html = '<svg width="100%" viewBox="0 0 ' + svgWidth + ' ' + svgHeight + '" class="mx-auto">';
-            html += '<text x="' + axisX.pre + '" y="' + (padding.top - 15) + '" font-size="12" text-anchor="middle" font-weight="bold">Pre-Test Probability (%)</text>';
-            html += '<text x="' + axisX.lr + '" y="' + (padding.top - 15) + '" font-size="12" text-anchor="middle" font-weight="bold">Likelihood Ratio</text>';
-            html += '<text x="' + axisX.post + '" y="' + (padding.top - 15) + '" font-size="12" text-anchor="middle" font-weight="bold">Post-Test Probability (%)</text>';
-
-            // Draw axes
-            html += '<line x1="' + axisX.pre + '" y1="' + padding.top + '" x2="' + axisX.pre + '" y2="' + (svgHeight - padding.bottom) + '" stroke="#9ca3af" />';
-            html += '<line x1="' + axisX.lr + '" y1="' + padding.top + '" x2="' + axisX.lr + '" y2="' + (svgHeight - padding.bottom) + '" stroke="#9ca3af" />';
-            html += '<line x1="' + axisX.post + '" y1="' + padding.top + '" x2="' + axisX.post + '" y2="' + (svgHeight - padding.bottom) + '" stroke="#9ca3af" />';
-
-            // Draw ticks
-            probTicks.forEach(function(p) {
-                var y = probToY(p);
-                html += '<line x1="' + (axisX.pre - 5) + '" y1="' + y + '" x2="' + axisX.pre + '" y2="' + y + '" stroke="#4b5563" />';
-                html += '<text x="' + (axisX.pre - 8) + '" y="' + (y + 4) + '" font-size="10" text-anchor="end">' + p + '</text>';
-                html += '<line x1="' + axisX.post + '" y1="' + y + '" x2="' + (axisX.post + 5) + '" y2="' + y + '" stroke="#4b5563" />';
-                html += '<text x="' + (axisX.post + 8) + '" y="' + (y + 4) + '" font-size="10" text-anchor="start">' + p + '</text>';
+            let html = `<svg width="100%" viewBox="0 0 ${svgWidth} ${svgHeight}" class="mx-auto" style="font-family: sans-serif;">`;
+            html += `<text x="${axisX.pre}" y="${padding.top - 15}" font-size="12" text-anchor="middle" font-weight="bold">Pre-Test Probability (%)</text>`;
+            html += `<text x="${axisX.lr}" y="${padding.top - 15}" font-size="12" text-anchor="middle" font-weight="bold">Likelihood Ratio</text>`;
+            html += `<text x="${axisX.post}" y="${padding.top - 15}" font-size="12" text-anchor="middle" font-weight="bold">Post-Test Probability (%)</text>`;
+            ['pre', 'lr', 'post'].forEach(key => html += `<line x1="${axisX[key]}" y1="${padding.top}" x2="${axisX[key]}" y2="${svgHeight - padding.bottom}" stroke="#9ca3af" />`);
+            probTicks.forEach(p => {
+                const y = probToY(p);
+                html += `<line x1="${axisX.pre - 5}" y1="${y}" x2="${axisX.pre}" y2="${y}" stroke="#4b5563" />`;
+                html += `<text x="${axisX.pre - 8}" y="${y + 4}" font-size="10" text-anchor="end">${p}</text>`;
+                html += `<line x1="${axisX.post}" y1="${y}" x2="${axisX.post + 5}" y2="${y}" stroke="#4b5563" />`;
+                html += `<text x="${axisX.post + 8}" y="${y + 4}" font-size="10" text-anchor="start">${p}</text>`;
             });
-
-            lrTicks.forEach(function(val) {
-                var y = lrToY(val);
-                html += '<line x1="' + (axisX.lr - 5) + '" y1="' + y + '" x2="' + (axisX.lr + 5) + '" y2="' + y + '" stroke="#4b5563" />';
-                html += '<text x="' + (axisX.lr + 8) + '" y="' + (y + 4) + '" font-size="10">' + val + '</text>';
+            lrTicks.forEach(val => {
+                const y = lrToY(val);
+                html += `<line x1="${axisX.lr - 5}" y1="${y}" x2="${axisX.lr + 5}" y2="${y}" stroke="#4b5563" />`;
+                html += `<text x="${axisX.lr + 8}" y="${y + 4}" font-size="10">${val}</text>`;
             });
-            
-            // Draw connecting line and markers
             if (postTestProb !== null) {
-                var yPre = probToY(preTestProb);
-                var yPost = probToY(postTestProb);
-                html += '<line x1="' + axisX.pre + '" y1="' + yPre + '" x2="' + axisX.post + '" y2="' + yPost + '" stroke="#ef4444" stroke-width="2" />';
-                html += '<circle cx="' + axisX.pre + '" cy="' + yPre + '" r="4" fill="#ef4444" />';
-                html += '<circle cx="' + axisX.post + '" cy="' + yPost + '" r="4" fill="#ef4444" />';
-                
-                // Calculate intersection with LR axis
-                var yLr = yPre + (yPost - yPre) * (axisX.lr - axisX.pre) / (axisX.post - axisX.pre);
-                html += '<circle cx="' + axisX.lr + '" cy="' + yLr + '" r="4" fill="#ef4444" />';
+                const yPre = probToY(preTestProb), yPost = probToY(postTestProb);
+                const yLr = yPre + (yPost - yPre) * (axisX.lr - axisX.pre) / (axisX.post - axisX.pre);
+                html += `<line x1="${axisX.pre}" y1="${yPre}" x2="${axisX.post}" y2="${yPost}" stroke="#ef4444" stroke-width="2" />`;
+                html += `<circle cx="${axisX.pre}" cy="${yPre}" r="4" fill="#ef4444" />`;
+                html += `<circle cx="${axisX.post}" cy="${yPost}" r="4" fill="#ef4444" />`;
+                html += `<circle cx="${axisX.lr}" cy="${yLr}" r="4" fill="#ef4444" />`;
             }
-            html += '</svg>';
-            return html;
+            return html + '</svg>';
         }
 
-        function renderDiagnostic() {
-            var results = calculateDiagnostic();
-            var html = '';
-            html += '<h2 class="text-2xl font-bold text-gray-900 mb-4">Diagnostic Test Performance</h2>';
-            html += '<p class="text-gray-600 mb-6">This shows how a test performs for a whole population, including correct results and errors.</p>';
+        // --- TAB-SPECIFIC RENDERING LOGIC ---
 
-            html += '<div class="grid md:grid-cols-2 gap-6 mb-8">';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Sensitivity (%)</label>';
-            html += '<input type="number" value="' + state.diagnostic.sensitivity + '" onchange="updateState(\'diagnostic\', \'sensitivity\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100"></div>';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Specificity (%)</label>';
-            html += '<input type="number" value="' + state.diagnostic.specificity + '" onchange="updateState(\'diagnostic\', \'specificity\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100"></div>';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Disease Prevalence (%)</label>';
-            html += '<input type="number" value="' + state.diagnostic.prevalence + '" onchange="updateState(\'diagnostic\', \'prevalence\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100"></div>';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Population Size</label>';
-            html += '<input type="number" value="' + state.diagnostic.population + '" onchange="updateState(\'diagnostic\', \'population\', parseInt(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="100" max="10000" step="100"></div>';
-            html += '</div>';
-            
-            html += '<div class="space-y-4">';
-            var population = state.diagnostic.population;
-            if (population > 0) {
-                html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">Combined Test Results for ' + population + ' People</h3>';
-
-                var displayTotal = Math.min(population, 1000);
-                var displayedTP = Math.round((results.truePositive / population) * displayTotal);
-                var displayedFN = Math.round((results.falseNegative / population) * displayTotal);
-                var displayedFP = Math.round((results.falsePositive / population) * displayTotal);
-                var displayedTN = displayTotal - displayedTP - displayedFN - displayedFP;
-
-                var iconsHtml = '<div class="grid population-grid gap-1 max-w-2xl">';
-                for (var i = 0; i < displayTotal; i++) {
-                    if (i < displayedTP) {
-                        iconsHtml += '<div class="w-3 h-3 rounded-sm bg-green-500" title="True Positive"></div>';
-                    } else if (i < displayedTP + displayedFN) {
-                        iconsHtml += '<div class="w-3 h-3 rounded-sm bg-red-500" title="False Negative"></div>';
-                    } else if (i < displayedTP + displayedFN + displayedTN) {
-                        iconsHtml += '<div class="w-3 h-3 rounded-sm bg-gray-200" title="True Negative"></div>';
-                    } else {
-                        iconsHtml += '<div class="w-3 h-3 rounded-sm bg-orange-500" title="False Positive"></div>';
-                    }
+        function renderTab(title, description, inputsHtml, visualsHtml, scenarioHtml = '') {
+            document.getElementById('tab-content').innerHTML = `
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">${title}</h2>
+                <p class="text-gray-600 mb-6 print-hidden">${description}</p>
+                ${scenarioHtml}
+                <div class="grid md:grid-cols-2 gap-6 mb-8 print-hidden">${inputsHtml}</div>
+                <div class="space-y-8" aria-live="polite">${visualsHtml}</div>
+            `;
+        }
+        
+        function renderDiagnosticTab() {
+            let scenarioOptions = '';
+            let lastGroup = "";
+            for (const key in diagScenarios) {
+                const scenario = diagScenarios[key];
+                if (scenario.group !== lastGroup) {
+                    if (lastGroup !== "") scenarioOptions += '</optgroup>';
+                    scenarioOptions += `<optgroup label="${scenario.group}">`;
+                    lastGroup = scenario.group;
                 }
-                iconsHtml += '</div>';
-                if (population > 1000) {
-                    iconsHtml += '<p class="text-xs text-gray-500 mt-2">Visualising a sample of ' + displayTotal + ' of ' + population + ' people.</p>';
+                const isSelected = state.diagnostic.scenarioName === scenario.name;
+                scenarioOptions += `<option value="${key}" ${isSelected ? 'selected' : ''}>${scenario.name}</option>`;
+            }
+            scenarioOptions += '</optgroup>';
+
+            const scenarios = `
+                <div class="mb-8 print-hidden">
+                    <label for="diag-scenario-select" class="block text-sm font-medium text-gray-700 mb-2">Common Scenarios (pre-fills values below)</label>
+                    <select id="diag-scenario-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg">${scenarioOptions}</select>
+                    <div id="diag-source" class="text-xs text-gray-500 mt-2"></div>
+                </div>`;
+            
+            const results = calculateDiagnostic();
+            const { population, scenarioName, scenarioDescription } = state.diagnostic;
+            const displayTotal = Math.min(population, 1000);
+            const displayedTP = Math.round((results.truePositive / population) * displayTotal);
+            const displayedFN = Math.round((results.falseNegative / population) * displayTotal);
+            const displayedTN = Math.round((results.trueNegative / population) * displayTotal);
+            const displayedFP = displayTotal - displayedTP - displayedFN - displayedTN;
+            let iconsHtml = '';
+            for (let i = 0; i < displayedTP; i++) iconsHtml += '<div class="w-3 h-3 rounded-sm bg-green-500" title="True Positive"></div>';
+            for (let i = 0; i < displayedFN; i++) iconsHtml += '<div class="w-3 h-3 rounded-sm bg-red-500" title="False Negative"></div>';
+            for (let i = 0; i < displayedTN; i++) iconsHtml += '<div class="w-3 h-3 rounded-sm bg-gray-200" title="True Negative"></div>';
+            for (let i = 0; i < displayedFP; i++) iconsHtml += '<div class="w-3 h-3 rounded-sm bg-orange-500" title="False Positive"></div>';
+            const footer = population > 1000 ? `<p class="text-xs text-gray-500 mt-2">Visualising a sample of ${displayTotal} of ${population} people.</p>` : '';
+            
+            const inputs = `
+                <div><label for="diag-sens" class="block text-sm font-medium text-gray-700 mb-2">Sensitivity (%)</label><input id="diag-sens" type="number" value="${state.diagnostic.sensitivity}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100"></div>
+                <div><label for="diag-spec" class="block text-sm font-medium text-gray-700 mb-2">Specificity (%)</label><input id="diag-spec" type="number" value="${state.diagnostic.specificity}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100"></div>
+                <div><label for="diag-prev" class="block text-sm font-medium text-gray-700 mb-2">Prevalence (%)</label><input id="diag-prev" type="number" value="${state.diagnostic.prevalence}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100"></div>
+                <div><label for="diag-pop" class="block text-sm font-medium text-gray-700 mb-2">Population</label><input id="diag-pop" type="number" value="${state.diagnostic.population}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="100" max="10000" step="100"></div>`;
+            
+            const visuals = `
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Results for: <span class="text-blue-900">${scenarioName}</span></h3>
+                    <h4 class="text-lg font-medium text-gray-800 mb-4">For ${population} People</h4>
+                    <div class="grid population-grid gap-1 max-w-2xl">${iconsHtml}</div>${footer}
+                </div>
+                <div class="mt-4 bg-blue-50 border-l-4 border-blue-500 p-4">
+                    <p class="text-blue-800 text-sm">${scenarioDescription}</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3 mt-6">Understanding the Four Outcomes</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div class="bg-gray-50 p-3 rounded-lg border"><div class="flex items-start"><span class="flex-shrink-0 w-4 h-4 rounded-sm bg-green-500 mr-3 mt-1"></span><div><p class="font-bold">True Positives: ${results.truePositive}</p><p class="text-gray-600">Correctly identified as having the condition.</p></div></div></div>
+                        <div class="bg-gray-50 p-3 rounded-lg border"><div class="flex items-start"><span class="flex-shrink-0 w-4 h-4 rounded-sm bg-red-500 mr-3 mt-1"></span><div><p class="font-bold">False Negatives: ${results.falseNegative}</p><p class="text-gray-600">Incorrectly missed by the test.</p></div></div></div>
+                        <div class="bg-gray-50 p-3 rounded-lg border"><div class="flex items-start"><span class="flex-shrink-0 w-4 h-4 rounded-sm bg-orange-500 mr-3 mt-1"></span><div><p class="font-bold">False Positives: ${results.falsePositive}</p><p class="text-gray-600">Incorrectly identified as having the condition.</p></div></div></div>
+                        <div class="bg-gray-50 p-3 rounded-lg border"><div class="flex items-start"><span class="flex-shrink-0 w-4 h-4 rounded-sm bg-gray-200 border mr-3 mt-1"></span><div><p class="font-bold">True Negatives: ${results.trueNegative}</p><p class="text-gray-600">Correctly identified as not having the condition.</p></div></div></div>
+                    </div>
+                </div>`;
+
+            renderTab('Diagnostic Test Performance', 'This shows how a test performs for a whole population.', inputs, visuals, scenarios);
+
+            const scenarioSelect = document.getElementById('diag-scenario-select');
+            const sourceDiv = document.getElementById('diag-source');
+            sourceDiv.innerHTML = diagScenarios[scenarioSelect.value]?.source ? `Data source: <em>${diagScenarios[scenarioSelect.value].source}</em>` : '';
+
+            scenarioSelect.addEventListener('change', e => {
+                const scenario = diagScenarios[e.target.value];
+                if (scenario) {
+                    state.diagnostic.sensitivity = scenario.sens;
+                    state.diagnostic.specificity = scenario.spec;
+                    state.diagnostic.prevalence = scenario.prev;
+                    state.diagnostic.scenarioName = scenario.name;
+                    state.diagnostic.scenarioDescription = scenario.description;
+                    render();
                 }
-                html += iconsHtml;
-                html += '</div>';
+            });
 
-                html += '<div>';
-                html += '<h3 class="text-lg font-semibold text-gray-900 mb-3 mt-6">Understanding the Results</h3>';
-                html += '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">';
+            function setCustom() {
+                state.diagnostic.scenarioName = diagScenarios['custom'].name;
+                state.diagnostic.scenarioDescription = diagScenarios['custom'].description;
+                render();
+            }
+
+            document.getElementById('diag-sens').addEventListener('change', e => { state.diagnostic.sensitivity = parseFloat(e.target.value); setCustom(); });
+            document.getElementById('diag-spec').addEventListener('change', e => { state.diagnostic.specificity = parseFloat(e.target.value); setCustom(); });
+            document.getElementById('diag-prev').addEventListener('change', e => { state.diagnostic.prevalence = parseFloat(e.target.value); setCustom(); });
+            document.getElementById('diag-pop').addEventListener('change', e => { state.diagnostic.population = parseInt(e.target.value); render(); }); // Population change doesn't make it "custom"
+        }
+        
+        function renderRiskTab() {
+            let riskCategoryOptions = '<option value="">Select a category...</option>';
+            for(const key in riskScenarios) { riskCategoryOptions += `<option value="${key}">${riskScenarios[key].name}</option>`; }
+
+            const scenarios = `
+                <div class="p-4 bg-gray-50 border rounded-lg mb-8 print-hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="risk-cat-select" class="block text-sm font-medium text-gray-700 mb-2">Risk Prediction Category</label>
+                            <select id="risk-cat-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg">${riskCategoryOptions}</select>
+                        </div>
+                        <div id="risk-score-inputs" class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                    </div>
+                    <div id="risk-source" class="text-xs text-gray-500 mt-2"></div>
+                </div>`;
+            
+            const { risk, population } = state.risk;
+            const affected = Math.round((risk / 100) * population);
+            const inputs = `
+                <div><label for="risk-percent" class="block text-sm font-medium text-gray-700 mb-2">Risk (%)</label><input id="risk-percent" type="number" value="${risk}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="0.1"></div>
+                <div><label for="risk-pop" class="block text-sm font-medium text-gray-700 mb-2">Population Size</label><select id="risk-pop" class="w-full px-4 py-2 border border-gray-300 rounded-lg"><option value="100" ${population === 100 ? 'selected' : ''}>100</option><option value="1000" ${population === 1000 ? 'selected' : ''}>1000</option></select></div>`;
+            const visuals = `
+                <div><h3 class="text-lg font-semibold text-gray-900 mb-4">Icon Array: ${affected} out of ${population} affected</h3>${createIconArray(affected, population, 'bg-red-500', 'Affected')}</div>
+                <div><h3 class="text-lg font-semibold text-gray-900 mb-4">Stacked Bar</h3>${createStackedBar(affected, population, 'bg-red-500', 'Affected')}</div>
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4"><p class="text-blue-800"><strong>${risk.toFixed(1)}% risk</strong> means approximately <strong>${affected} out of every ${population} people</strong> may be affected.</p></div>`;
+            renderTab('Absolute Risk Visualiser', 'Show risk as people affected out of a population.', inputs, visuals, scenarios);
+
+            document.getElementById('risk-percent').addEventListener('change', e => { state.risk.risk = parseFloat(e.target.value); render(); });
+            document.getElementById('risk-pop').addEventListener('change', e => { state.risk.population = parseInt(e.target.value); render(); });
+            const riskCatSelect = document.getElementById('risk-cat-select');
+            riskCatSelect.addEventListener('change', e => {
+                const categoryKey = e.target.value;
+                const scoreContainer = document.getElementById('risk-score-inputs');
+                const sourceContainer = document.getElementById('risk-source');
+                scoreContainer.innerHTML = '';
+                if (!categoryKey) { sourceContainer.innerHTML = ''; return; }
+
+                const category = riskScenarios[categoryKey];
+                sourceContainer.innerHTML = `Data source: <em>${category.source}</em>`;
+                let scoreOptions = '<option value="">Select a score...</option>';
+                for(const key in category.scores) { scoreOptions += `<option value="${key}">${category.scores[key].name}</option>`; }
                 
-                html += '<div class="bg-gray-50 p-3 rounded-lg border border-gray-200"><div class="flex items-start">';
-                html += '<span class="flex-shrink-0 inline-block w-4 h-4 rounded-sm bg-green-500 mr-3 mt-1"></span>';
-                html += '<div><p class="font-bold text-gray-800">True Positives: ' + results.truePositive + '</p>';
-                html += '<p class="text-gray-600">People who have the condition and the test correctly found it.</p>';
-                html += '</div></div></div>';
-                
-                html += '<div class="bg-gray-50 p-3 rounded-lg border border-gray-200"><div class="flex items-start">';
-                html += '<span class="flex-shrink-0 inline-block w-4 h-4 rounded-sm bg-red-500 mr-3 mt-1"></span>';
-                html += '<div><p class="font-bold text-gray-800">False Negatives: ' + results.falseNegative + '</p>';
-                html += '<p class="text-gray-600">People who have the condition, but the test unfortunately missed it.</p>';
-                html += '</div></div></div>';
-                
-                html += '<div class="bg-gray-50 p-3 rounded-lg border border-gray-200"><div class="flex items-start">';
-                html += '<span class="flex-shrink-0 inline-block w-4 h-4 rounded-sm bg-orange-500 mr-3 mt-1"></span>';
-                html += '<div><p class="font-bold text-gray-800">False Positives: ' + results.falsePositive + '</p>';
-                html += '<p class="text-gray-600">People who are healthy, but the test incorrectly said they have the condition.</p>';
-                html += '</div></div></div>';
-                
-                html += '<div class="bg-gray-50 p-3 rounded-lg border border-gray-200"><div class="flex items-start">';
-                html += '<span class="flex-shrink-0 inline-block w-4 h-4 rounded-sm bg-gray-200 border border-gray-300 mr-3 mt-1"></span>';
-                html += '<div><p class="font-bold text-gray-800">True Negatives: ' + results.trueNegative + '</p>';
-                html += '<p class="text-gray-600">People who are healthy, and the test correctly confirmed it.</p>';
-                html += '</div></div></div>';
+                scoreContainer.innerHTML = `<div><label for="risk-score-select" class="block text-sm font-medium text-gray-700 mb-2">Score</label><select id="risk-score-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg">${scoreOptions}</select></div><div id="risk-point-container"></div>`;
 
-                html += '</div></div>';
-            }
-            html += '</div>';
-
-            return html;
+                document.getElementById('risk-score-select').addEventListener('change', e2 => {
+                    const scoreKey = e2.target.value;
+                    const pointContainer = document.getElementById('risk-point-container');
+                    pointContainer.innerHTML = '';
+                    if (!scoreKey) return;
+                    
+                    const score = category.scores[scoreKey];
+                    let pointOptions = '';
+                    for(const point in score.points) { pointOptions += `<option value="${point}">${point}</option>`; }
+                    pointContainer.innerHTML = `<div><label for="risk-points-select" class="block text-sm font-medium text-gray-700 mb-2">${score.name} Score/Class</label><select id="risk-points-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg">${pointOptions}</select></div>`;
+                    
+                    const pointsSelect = document.getElementById('risk-points-select');
+                    const updateRiskFromCalc = () => {
+                        const riskValue = score.points[pointsSelect.value];
+                        state.risk.risk = riskValue;
+                        render();
+                    };
+                    pointsSelect.addEventListener('change', updateRiskFromCalc);
+                    updateRiskFromCalc();
+                });
+            });
+        }
+        
+        function renderReductionTab() {
+            const { baselineRisk, treatmentRisk, population } = state.reduction;
+            const before = Math.round((baselineRisk / 100) * population);
+            const after = Math.round((treatmentRisk / 100) * population);
+            const diff = before - after;
+            const inputs = `
+                <div><label for="reduct-base" class="block text-sm font-medium text-gray-700 mb-2">Baseline Risk (%)</label><input id="reduct-base" type="number" value="${baselineRisk}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="0.1"></div>
+                <div><label for="reduct-treat" class="block text-sm font-medium text-gray-700 mb-2">Risk After Treatment (%)</label><input id="reduct-treat" type="number" value="${treatmentRisk}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="0.1"></div>`;
+            const visuals = `
+                <div><h3 class="text-lg font-semibold text-gray-900 mb-4">Before Treatment: ${before} out of ${population} affected</h3>${createIconArray(before, population, 'bg-red-500', 'At risk')}</div>
+                <div><h3 class="text-lg font-semibold text-gray-900 mb-4">After Treatment: ${after} out of ${population} affected</h3>${createIconArray(after, population, 'bg-orange-500', 'Still at risk')}</div>
+                <div class="bg-green-50 border-l-4 border-green-500 p-4"><h4 class="font-semibold text-green-900 mb-2">Absolute Risk Reduction</h4><p class="text-green-800">Treatment reduces risk from <strong>${baselineRisk}%</strong> to <strong>${treatmentRisk}%</strong>. This is a <strong>${(baselineRisk - treatmentRisk).toFixed(1)} percentage point</strong> reduction, meaning <strong>${diff} fewer people</strong> out of ${population} will be affected.</p></div>`;
+            renderTab('Risk Reduction Calculator', 'Compare absolute risks before and after treatment.', inputs, visuals);
+            document.getElementById('reduct-base').addEventListener('change', e => { state.reduction.baselineRisk = parseFloat(e.target.value); render(); });
+            document.getElementById('reduct-treat').addEventListener('change', e => { state.reduction.treatmentRisk = parseFloat(e.target.value); render(); });
         }
 
-        function renderRisk() {
-            var affected = Math.round((state.risk.risk / 100) * state.risk.population);
-            var html = '';
-            html += '<h2 class="text-2xl font-bold text-gray-900 mb-4">Absolute Risk Visualiser</h2>';
-            html += '<p class="text-gray-600 mb-6">Show risk as people affected out of a population.</p>';
-            html += '<div class="grid md:grid-cols-2 gap-6 mb-8">';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Risk (%)</label>';
-            html += '<input type="number" value="' + state.risk.risk + '" onchange="updateState(\'risk\', \'risk\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="0.1"></div>';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Population Size</label>';
-            html += '<select onchange="updateState(\'risk\', \'population\', parseInt(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg">';
-            html += '<option value="100"' + (state.risk.population === 100 ? ' selected' : '') + '>100 people</option>';
-            html += '<option value="1000"' + (state.risk.population === 1000 ? ' selected' : '') + '>1000 people</option>';
-            html += '</select></div></div>';
-            html += '<div class="space-y-8">';
-            html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">Icon Array: ' + affected + ' out of ' + state.risk.population + ' affected</h3>';
-            html += createIconArray(affected, state.risk.population, 'bg-red-500', 'Affected');
-            html += '</div>';
-            html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">Stacked Bar</h3>';
-            html += createStackedBar(affected, state.risk.population, 'bg-red-500', 'Affected');
-            html += '</div>';
-            html += '<div class="bg-blue-50 border-l-4 border-blue-500 p-4">';
-            html += '<p class="text-blue-800"><strong>' + state.risk.risk + '%</strong> means approximately <strong>' + affected + ' out of every ' + state.risk.population + ' people</strong> will be affected.</p></div>';
-            html += '</div>';
-            return html;
+        function renderNNTTab() {
+            const nnt = calculateNNT();
+            const inputs = `
+                <div><label for="nnt-base" class="block text-sm font-medium text-gray-700 mb-2">Baseline Risk (%)</label><input id="nnt-base" type="number" value="${state.nnt.baselineRisk}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="0.1"></div>
+                <div><label for="nnt-treat" class="block text-sm font-medium text-gray-700 mb-2">Risk After Treatment (%)</label><input id="nnt-treat" type="number" value="${state.nnt.treatmentRisk}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="0.1"></div>`;
+            const visuals = nnt ? `
+                <div class="bg-blue-900 text-white p-8 rounded-lg text-center"><p class="text-lg mb-2">Number Needed to Treat</p><p class="text-6xl font-bold">${nnt}</p></div>
+                <div><h3 class="text-lg font-semibold text-gray-900 mb-4">Visualisation: Treat ${nnt} patients for 1 to benefit</h3>${createIconArray(1, nnt, 'bg-green-500', 'Benefits')}</div>
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4"><p class="text-blue-800">You need to treat <strong>${nnt} patients</strong> for <strong>one patient to benefit</strong>. The absolute risk reduction is <strong>${(state.nnt.baselineRisk - state.nnt.treatmentRisk).toFixed(1)} percentage points</strong>.</p></div>`
+                : `<div class="bg-yellow-50 border-l-4 border-yellow-500 p-4"><p class="text-yellow-800">Treatment risk must be lower than baseline risk to calculate NNT.</p></div>`;
+            renderTab('Number Needed to Treat (NNT)', 'Calculate how many patients need treatment for one to benefit.', inputs, visuals);
+            document.getElementById('nnt-base').addEventListener('change', e => { state.nnt.baselineRisk = parseFloat(e.target.value); render(); });
+            document.getElementById('nnt-treat').addEventListener('change', e => { state.nnt.treatmentRisk = parseFloat(e.target.value); render(); });
         }
 
-        function renderReduction() {
-            var before = Math.round((state.reduction.baselineRisk / 100) * state.reduction.population);
-            var after = Math.round((state.reduction.treatmentRisk / 100) * state.reduction.population);
-            var diff = before - after;
-            var html = '';
-            html += '<h2 class="text-2xl font-bold text-gray-900 mb-4">Risk Reduction Calculator</h2>';
-            html += '<p class="text-gray-600 mb-6">Compare absolute risks before and after treatment.</p>';
-            html += '<div class="grid md:grid-cols-2 gap-6 mb-8">';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Baseline Risk (%)</label>';
-            html += '<input type="number" value="' + state.reduction.baselineRisk + '" onchange="updateState(\'reduction\', \'baselineRisk\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="0.1"></div>';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Risk After Treatment (%)</label>';
-            html += '<input type="number" value="' + state.reduction.treatmentRisk + '" onchange="updateState(\'reduction\', \'treatmentRisk\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="0.1"></div></div>';
-            html += '<div class="space-y-8">';
-            html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">Before Treatment</h3>';
-            html += createIconArray(before, state.reduction.population, 'bg-red-500', 'At risk');
-            html += '<p class="text-sm text-gray-600 mt-2">' + before + ' out of ' + state.reduction.population + ' affected</p></div>';
-            html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">After Treatment</h3>';
-            html += createIconArray(after, state.reduction.population, 'bg-orange-500', 'Still at risk');
-            html += '<p class="text-sm text-gray-600 mt-2">' + after + ' out of ' + state.reduction.population + ' affected</p></div>';
-            html += '<div class="bg-green-50 border-l-4 border-green-500 p-4"><h4 class="font-semibold text-green-900 mb-2">Absolute Risk Reduction</h4>';
-            html += '<p class="text-green-800 text-lg">Treatment reduces risk from <strong>' + state.reduction.baselineRisk + '%</strong> to <strong>' + state.reduction.treatmentRisk + '%</strong></p>';
-            html += '<p class="text-green-800 mt-2">That is a <strong>' + (state.reduction.baselineRisk - state.reduction.treatmentRisk).toFixed(1) + ' percentage point</strong> reduction</p>';
-            html += '<p class="text-green-800 mt-2"><strong>' + diff + ' fewer people</strong> out of ' + state.reduction.population + ' will be affected</p></div>';
-            html += '</div>';
-            return html;
+        function renderRelativeTab() {
+            const results = calculateRelativeRisk();
+            const inputs = `
+                <div><label for="rel-base" class="block text-sm font-medium text-gray-700 mb-2">Baseline Risk (%)</label><input id="rel-base" type="number" value="${state.relative.baselineRisk}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="0.1"></div>
+                <div><label for="rel-reduct" class="block text-sm font-medium text-gray-700 mb-2">Relative Risk Reduction (%)</label><input id="rel-reduct" type="number" value="${state.relative.relativeReduction}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="1"></div>`;
+            const visuals = `
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-red-50 border-2 border-red-200 p-6 rounded-lg"><h3 class="text-xl font-semibold text-red-900 mb-2">Misleading</h3><p class="text-3xl font-bold text-red-700 mb-2">${state.relative.relativeReduction}%</p><p class="text-red-800">Relative Risk Reduction</p></div>
+                    <div class="bg-green-50 border-2 border-green-500 p-6 rounded-lg"><h3 class="text-xl font-semibold text-green-900 mb-2">Clearer</h3><p class="text-3xl font-bold text-green-700 mb-2">${state.relative.baselineRisk}% to ${results.newRisk}%</p><p class="text-green-800">Absolute Risk Change</p></div>
+                </div>
+                <div><h3 class="text-lg font-semibold text-gray-900 mb-4">Visual Comparison</h3><div class="space-y-4"><div><p class="text-sm font-medium mb-2">Before</p>${createStackedBar(state.relative.baselineRisk, 100, 'bg-red-500', 'At risk')}</div><div><p class="text-sm font-medium mb-2">After</p>${createStackedBar(parseFloat(results.newRisk), 100, 'bg-orange-500', 'At risk')}</div></div></div>
+                <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4"><p class="text-yellow-800">A <strong>${state.relative.relativeReduction}% relative reduction</strong> actually means reducing risk from <strong>${state.relative.baselineRisk}%</strong> to <strong>${results.newRisk}%</strong>, an absolute reduction of <strong>${results.absoluteReduction} percentage points</strong>.</p></div>`;
+            renderTab('Relative vs Absolute Risk', 'Convert relative risk reduction to absolute terms.', inputs, visuals);
+            document.getElementById('rel-base').addEventListener('change', e => { state.relative.baselineRisk = parseFloat(e.target.value); render(); });
+            document.getElementById('rel-reduct').addEventListener('change', e => { state.relative.relativeReduction = parseFloat(e.target.value); render(); });
         }
 
-        function renderNNT() {
-            var nnt = calculateNNT();
-            var html = '';
-            html += '<h2 class="text-2xl font-bold text-gray-900 mb-4">Number Needed to Treat (NNT)</h2>';
-            html += '<p class="text-gray-600 mb-6">Calculate how many patients need treatment for one to benefit.</p>';
-            html += '<div class="grid md:grid-cols-2 gap-6 mb-8">';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Baseline Risk (%)</label>';
-            html += '<input type="number" value="' + state.nnt.baselineRisk + '" onchange="updateState(\'nnt\', \'baselineRisk\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="0.1"></div>';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Risk After Treatment (%)</label>';
-            html += '<input type="number" value="' + state.nnt.treatmentRisk + '" onchange="updateState(\'nnt\', \'treatmentRisk\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="0.1"></div></div>';
-            
-            if (!nnt) {
-                html += '<div class="bg-yellow-50 border-l-4 border-yellow-500 p-4">';
-                html += '<p class="text-yellow-800">Treatment risk must be lower than baseline risk to calculate NNT.</p></div>';
-            } else {
-                html += '<div class="space-y-6">';
-                html += '<div class="bg-blue-900 text-white p-8 rounded-lg text-center">';
-                html += '<p class="text-lg mb-2">Number Needed to Treat</p>';
-                html += '<p class="text-6xl font-bold">' + nnt + '</p></div>';
-                html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">Visual representation: Treat ' + nnt + ' patients for 1 to benefit</h3>';
-                html += createIconArray(1, nnt, 'bg-green-500', 'Benefits from treatment');
-                html += '</div>';
-                html += '<div class="bg-blue-50 border-l-4 border-blue-500 p-4">';
-                html += '<p class="text-blue-800">You need to treat <strong>' + nnt + ' patients</strong> for <strong>one patient to benefit</strong> from the treatment. ';
-                html += 'The absolute risk reduction is <strong>' + (state.nnt.baselineRisk - state.nnt.treatmentRisk).toFixed(1) + ' percentage points</strong>.</p></div>';
-                html += '</div>';
-            }
-            return html;
-        }
-
-        function renderRelative() {
-            var results = calculateRelativeRisk();
-            var html = '';
-            html += '<h2 class="text-2xl font-bold text-gray-900 mb-4">Relative vs Absolute Risk</h2>';
-            html += '<p class="text-gray-600 mb-6">Convert relative risk reduction to absolute terms.</p>';
-            html += '<div class="grid md:grid-cols-2 gap-6 mb-8">';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Baseline Risk (%)</label>';
-            html += '<input type="number" value="' + state.relative.baselineRisk + '" onchange="updateState(\'relative\', \'baselineRisk\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="0.1"></div>';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Relative Risk Reduction (%)</label>';
-            html += '<input type="number" value="' + state.relative.relativeReduction + '" onchange="updateState(\'relative\', \'relativeReduction\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="1"></div></div>';
-            html += '<div class="space-y-8">';
-            html += '<div class="grid md:grid-cols-2 gap-6">';
-            html += '<div class="bg-red-50 border-2 border-red-200 p-6 rounded-lg">';
-            html += '<h3 class="text-xl font-semibold text-red-900 mb-2">Misleading</h3>';
-            html += '<p class="text-3xl font-bold text-red-700 mb-2">' + state.relative.relativeReduction + '%</p>';
-            html += '<p class="text-red-800">Relative Risk Reduction</p>';
-            html += '<p class="text-sm text-red-600 mt-4">This sounds impressive but does not tell patients the actual impact</p></div>';
-            html += '<div class="bg-green-50 border-2 border-green-500 p-6 rounded-lg">';
-            html += '<h3 class="text-xl font-semibold text-green-900 mb-2">Clear and Honest</h3>';
-            html += '<p class="text-3xl font-bold text-green-700 mb-2">' + state.relative.baselineRisk + '% to ' + results.newRisk + '%</p>';
-            html += '<p class="text-green-800">Absolute Risk Change</p>';
-            html += '<p class="text-sm text-green-600 mt-4">' + results.absoluteReduction + ' percentage point reduction</p></div></div>';
-            html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">Visual Comparison</h3>';
-            html += '<div class="space-y-4">';
-            html += '<div><p class="text-sm font-medium text-gray-700 mb-2">Before Treatment</p>';
-            html += createStackedBar(Math.round(state.relative.baselineRisk), 100, 'bg-red-500', 'At risk');
-            html += '</div>';
-            html += '<div><p class="text-sm font-medium text-gray-700 mb-2">After Treatment</p>';
-            html += createStackedBar(Math.round(parseFloat(results.newRisk)), 100, 'bg-orange-500', 'At risk');
-            html += '</div></div></div>';
-            html += '<div class="bg-yellow-50 border-l-4 border-yellow-500 p-4">';
-            html += '<h4 class="font-semibold text-yellow-900 mb-2">Why This Matters</h4>';
-            html += '<p class="text-yellow-800">A <strong>' + state.relative.relativeReduction + '% relative risk reduction</strong> sounds dramatic, but it actually means ';
-            html += 'reducing your risk from <strong>' + state.relative.baselineRisk + '%</strong> to <strong>' + results.newRisk + '%</strong> - ';
-            html += 'an absolute reduction of just <strong>' + results.absoluteReduction + ' percentage points</strong>.</p>';
-            html += '<p class="text-yellow-800 mt-2">Out of 100 people, <strong>' + Math.round(results.absoluteReduction) + '</strong> fewer would experience the outcome.</p></div>';
-            html += '</div>';
-            return html;
-        }
-
-        function renderBiomarker() {
-            var bio = state.biomarker;
-            var minVal = bio.normalMin;
-            var maxVal = bio.normalMax;
-            var currentVal = bio.value;
-            var targetVal = bio.targetValue;
-            var thresholdVal = bio.thresholdValue;
-            
-            var allVals = [minVal, maxVal, currentVal];
-            if (targetVal) allVals.push(targetVal);
-            if (thresholdVal) allVals.push(parseFloat(thresholdVal));
-            
-            var min = Math.min.apply(null, allVals) * 0.8;
-            var max = Math.max.apply(null, allVals) * 1.2;
-            var range = max - min;
-            
-            function getPos(val) {
-                if (!val || range === 0) return 0;
-                return ((val - min) / range) * 100;
-            }
-            
-            var normalPos = getPos(minVal);
-            var normalWidth = getPos(maxVal) - normalPos;
-            var valuePos = getPos(currentVal);
-            var targetPos = targetVal ? getPos(targetVal) : null;
-            var thresholdPos = thresholdVal ? getPos(parseFloat(thresholdVal)) : null;
-            
-            var html = '';
-            html += '<h2 class="text-2xl font-bold text-gray-900 mb-4">Biomarker Contextualiser</h2>';
-            html += '<p class="text-gray-600 mb-6">Add context to lab results with normal ranges and targets.</p>';
-            html += '<div class="grid md:grid-cols-2 gap-6 mb-8">';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Biomarker Name</label>';
-            html += '<input type="text" value="' + bio.biomarkerName + '" onchange="updateState(\'biomarker\', \'biomarkerName\', this.value)" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Unit</label>';
-            html += '<input type="text" value="' + bio.unit + '" onchange="updateState(\'biomarker\', \'unit\', this.value)" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Patient Value</label>';
-            html += '<input type="number" value="' + bio.value + '" onchange="updateState(\'biomarker\', \'value\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" step="0.1"></div>';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Normal Range Min</label>';
-            html += '<input type="number" value="' + bio.normalMin + '" onchange="updateState(\'biomarker\', \'normalMin\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" step="0.1"></div>';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Normal Range Max</label>';
-            html += '<input type="number" value="' + bio.normalMax + '" onchange="updateState(\'biomarker\', \'normalMax\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" step="0.1"></div>';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Target Value (optional)</label>';
-            html += '<input type="number" value="' + (bio.targetValue || '') + '" onchange="updateState(\'biomarker\', \'targetValue\', parseFloat(this.value) || \'\')" class="w-full px-4 py-2 border border-gray-300 rounded-lg" step="0.1" placeholder="Leave empty if none"></div>';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Action Threshold (optional)</label>';
-            html += '<input type="number" value="' + bio.thresholdValue + '" onchange="updateState(\'biomarker\', \'thresholdValue\', this.value)" class="w-full px-4 py-2 border border-gray-300 rounded-lg" step="0.1" placeholder="Leave empty if none"></div>';
-            html += '</div>';
-            
-            html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">' + bio.biomarkerName + ' Level</h3>';
-            html += '<div class="w-full max-w-2xl mt-6">';
-            html += '<div class="relative h-24 bg-gray-100 rounded-lg border-2 border-gray-300">';
-            html += '<div class="absolute h-full bg-green-100 border-l-2 border-r-2 border-green-500" style="left: ' + normalPos + '%; width: ' + normalWidth + '%">';
-            html += '<div class="absolute top-1 left-1/2 transform -translate-x-1/2 text-xs text-green-700 font-medium">Normal</div></div>';
-            
-            if (targetPos !== null) {
-                html += '<div class="absolute h-full border-l-2 border-blue-500" style="left: ' + targetPos + '%">';
-                html += '<div class="absolute -top-6 left-0 transform -translate-x-1/2 text-xs text-blue-600 font-medium whitespace-nowrap">Target: ' + bio.targetValue + bio.unit + '</div></div>';
-            }
-            
-            if (thresholdPos !== null) {
-                html += '<div class="absolute h-full border-l-2 border-orange-500" style="left: ' + thresholdPos + '%">';
-                html += '<div class="absolute -bottom-6 left-0 transform -translate-x-1/2 text-xs text-orange-600 font-medium whitespace-nowrap">Threshold: ' + bio.thresholdValue + bio.unit + '</div></div>';
-            }
-            
-            html += '<div class="absolute h-full" style="left: ' + valuePos + '%">';
-            html += '<div class="absolute top-1/2 left-0 transform -translate-y-1/2 -translate-x-1/2 h-full border-l-4 border-red-600"></div>';
-            html += '<div class="absolute top-1/2 left-0 transform -translate-y-1/2 -translate-x-1/2">';
-            html += '<div class="w-4 h-4 bg-red-600 rounded-full border-2 border-white"></div></div>';
-            html += '<div class="absolute top-1/2 left-0 transform -translate-y-1/2 translate-x-3 text-sm font-bold text-red-600 whitespace-nowrap bg-white/70 px-1 rounded">' + bio.value + bio.unit + '</div></div>';
-            html += '</div>';
-            
-            html += '<div class="flex justify-between text-xs text-gray-500 mt-2">';
-            html += '<span>' + min.toFixed(1) + bio.unit + '</span>';
-            html += '<span>' + max.toFixed(1) + bio.unit + '</span></div>';
-            
-            html += '<div class="mt-4 text-sm text-gray-700">';
-            html += '<p><strong>Normal range:</strong> ' + bio.normalMin + bio.unit + ' to ' + bio.normalMax + bio.unit + '</p>';
-            if (bio.targetValue) {
-                html += '<p><strong>Target:</strong> Below ' + bio.targetValue + bio.unit + '</p>';
-            }
-            if (bio.thresholdValue) {
-                html += '<p><strong>Action threshold:</strong> ' + bio.thresholdValue + bio.unit + '</p>';
-            }
-            html += '</div></div>';
-            
-            html += '<div class="mt-6 bg-blue-50 border-l-4 border-blue-500 p-4">';
-            html += '<h4 class="font-semibold text-blue-900 mb-2">Interpretation</h4>';
-            html += '<p class="text-blue-800">Your ' + bio.biomarkerName + ' is <strong>' + bio.value + bio.unit + '</strong>.';
-            if (bio.value < bio.normalMin) {
-                html += ' This is below the normal range.';
-            } else if (bio.value > bio.normalMax) {
-                html += ' This is above the normal range.';
-            } else {
-                html += ' This is within the normal range.';
-            }
-            html += '</p>';
-            if (bio.targetValue) {
-                html += '<p class="text-blue-800 mt-2">';
-                if (bio.value <= bio.targetValue) {
-                    html += 'You have reached the target of ' + bio.targetValue + bio.unit + '.';
-                } else {
-                    html += 'The target for you is ' + bio.targetValue + bio.unit + '.';
-                }
-                html += '</p>';
-            }
-            html += '</div></div>';
-            
-            return html;
-        }
-
-        function renderLikelihood() {
-            var results = calculateLikelihood();
-            var html = '';
-            html += '<h2 class="text-2xl font-bold text-gray-900 mb-4">Pre/Post-Test Probability Calculator</h2>';
-            html += '<p class="text-gray-600 mb-6">Apply Bayesian reasoning using a Fagan\'s Nomogram. Adjust your pre-test probability (your "gestalt") with the likelihood ratio of a test to determine the post-test probability.</p>';
-
-            html += '<div class="grid md:grid-cols-2 gap-6 mb-8">';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Pre-Test Probability (%)</label>';
-            html += '<input type="number" value="' + state.likelihood.preTestProb + '" onchange="updateState(\'likelihood\', \'preTestProb\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0.1" max="99.9" step="1"></div>';
-            html += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Likelihood Ratio (LR)</label>';
-            html += '<input type="number" value="' + state.likelihood.likelihoodRatio + '" onchange="updateState(\'likelihood\', \'likelihoodRatio\', parseFloat(this.value))" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" step="0.1"></div>';
-            html += '</div>';
-
-            if(results.postTestProb !== null) {
-                html += '<div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8">';
-                html += '<p class="text-blue-800">With a pre-test probability of <strong>' + state.likelihood.preTestProb + '%</strong> and a likelihood ratio of <strong>' + state.likelihood.likelihoodRatio + '</strong>, the post-test probability is approximately <strong>' + results.postTestProb.toFixed(1) + '%</strong>.</p></div>';
-            } else {
-                html += '<div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-8">';
-                html += '<p class="text-yellow-800">Please enter a valid pre-test probability (0.1-99.9) and a positive likelihood ratio.</p></div>';
-            }
-            
-            html += '<div><h3 class="text-lg font-semibold text-gray-900 mb-4">Fagan\'s Nomogram</h3>';
-            html += createFaganNomogram(state.likelihood.preTestProb, state.likelihood.likelihoodRatio, results.postTestProb);
-            html += '</div>';
-
-            return html;
+        function renderLikelihoodTab() {
+            const results = calculateLikelihood();
+            const inputs = `
+                <div><label for="like-pre" class="block text-sm font-medium text-gray-700 mb-2">Pre-Test Probability (%)</label><input id="like-pre" type="number" value="${state.likelihood.preTestProb}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0.1" max="99.9" step="1"></div>
+                <div><label for="like-lr" class="block text-sm font-medium text-gray-700 mb-2">Likelihood Ratio (LR)</label><input id="like-lr" type="number" value="${state.likelihood.likelihoodRatio}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" step="0.1"></div>`;
+            const visuals = `
+                ${results.postTestProb !== null ? `<div class="bg-blue-50 border-l-4 border-blue-500 p-4"><p class="text-blue-800">With a pre-test probability of <strong>${state.likelihood.preTestProb}%</strong> and a likelihood ratio of <strong>${state.likelihood.likelihoodRatio}</strong>, the post-test probability is <strong>${results.postTestProb.toFixed(1)}%</strong>.</p></div>` : ''}
+                <div><h3 class="text-lg font-semibold text-gray-900 mb-4">Fagan's Nomogram</h3>${createFaganNomogram(state.likelihood.preTestProb, state.likelihood.likelihoodRatio, results.postTestProb)}</div>`;
+            renderTab('Pre/Post-Test Probability Calculator', "Apply Bayesian reasoning using a Fagan's Nomogram.", inputs, visuals);
+            document.getElementById('like-pre').addEventListener('change', e => { state.likelihood.preTestProb = parseFloat(e.target.value); render(); });
+            document.getElementById('like-lr').addEventListener('change', e => { state.likelihood.likelihoodRatio = parseFloat(e.target.value); render(); });
         }
 
 
-        function updateState(tab, key, value) {
-            state[tab][key] = value;
-            render();
-        }
+        // --- CORE APP LOGIC ---
 
         function switchTab(tabName) {
             state.activeTab = tabName;
-            
-            var buttons = document.querySelectorAll('.tab-btn');
-            for (var i = 0; i < buttons.length; i++) {
-                if (buttons[i].dataset.tab === tabName) {
-                    buttons[i].className = 'tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors bg-blue-900 text-white';
-                } else {
-                    buttons[i].className = 'tab-btn px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors bg-white text-gray-700 hover:bg-gray-100';
-                }
-            }
-            
+            document.querySelectorAll('.tab-btn').forEach(button => {
+                const isSelected = button.dataset.tab === tabName;
+                button.classList.toggle('bg-blue-900', isSelected);
+                button.classList.toggle('text-white', isSelected);
+                button.classList.toggle('bg-white', !isSelected);
+                button.classList.toggle('text-gray-700', !isSelected);
+            });
             render();
         }
 
         function render() {
-            var content = document.getElementById('tab-content');
-            var html = '';
-            
             switch(state.activeTab) {
-                case 'diagnostic':
-                    html = renderDiagnostic();
-                    break;
-                case 'risk':
-                    html = renderRisk();
-                    break;
-                case 'reduction':
-                    html = renderReduction();
-                    break;
-                case 'nnt':
-                    html = renderNNT();
-                    break;
-                case 'relative':
-                    html = renderRelative();
-                    break;
-                case 'biomarker':
-                    html = renderBiomarker();
-                    break;
-                case 'likelihood':
-                    html = renderLikelihood();
-                    break;
+                case 'diagnostic': renderDiagnosticTab(); break;
+                case 'risk': renderRiskTab(); break;
+                case 'reduction': renderReductionTab(); break;
+                case 'nnt': renderNNTTab(); break;
+                case 'relative': renderRelativeTab(); break;
+                case 'likelihood': renderLikelihoodTab(); break;
             }
-            
-            content.innerHTML = html;
         }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('current-year').textContent = new Date().getFullYear();
+            const today = new Date();
+            document.getElementById('pdf-date').value = today.toLocaleDateString('en-GB');
 
-        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.tab-btn').forEach(button => {
+                button.addEventListener('click', () => switchTab(button.dataset.tab));
+            });
+            document.getElementById('generate-pdf-btn').addEventListener('click', generatePdf);
             switchTab('diagnostic');
         });
     </script>
 </body>
 </html>
+
