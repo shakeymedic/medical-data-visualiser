@@ -149,8 +149,8 @@
             'custom': { name: 'Custom values', description: 'Enter custom values for sensitivity, specificity, and prevalence to model a specific test.', scores: { 'custom': { name: 'Custom', sens: 95, spec: 90, prev: 10, source: null } } },
             'heart': { name: 'HEART Score for 30-day MACE', source: 'Sixma et al. Neth Heart J 2008', description: 'The HEART score helps predict the 6-week risk of a Major Adverse Cardiac Event (MACE) in patients with chest pain. A higher score suggests a higher risk.', evidenceSummary: "The original HEART score validation study (Sixma et al., 2008) found that patients with scores of 0-3 had a very low risk (1.7%) of Major Adverse Cardiac Events (MACE) within 6 weeks, suggesting they may be safe for early discharge.", scores: { '0-3': { name: 'Score 0-3 (Low Risk)', sens: 97, spec: 50, prev: 18 }, '4-6': { name: 'Score 4-6 (Moderate Risk)', sens: 80, spec: 80, prev: 18 } } },
             'alvarado': { name: 'Alvarado Score for Appendicitis', source: 'Ohle R et al. Acad Emerg Med. 2011', description: 'The Alvarado score is used to risk-stratify patients with suspected appendicitis.', evidenceSummary: "A 2011 meta-analysis showed that a score of less than 5 in adults has a very high sensitivity (99%) for ruling out appendicitis, making it a useful tool to reduce admissions and further imaging.", scores: { '>=7': { name: 'Score ≥ 7 (High Risk)', sens: 82, spec: 81, prev: 35 }, '<5': { name: 'Score < 5 (Low Risk to rule out)', sens: 99, spec: 43, prev: 35 } } },
-            'wells_pe': { name: 'Wells\' Score for PE', source: 'Wolf SJ et al. Ann Emerg Med. 2019', description: 'The Wells\' score helps determine the pre-test probability of a pulmonary embolism (PE). This models using the dichotomised score.', evidenceSummary: "The Wells' score is a clinical prediction rule used to estimate the pre-test probability of PE. It is used to guide further testing (e.g., D-dimer, CTPA). Studies have shown it can safely reduce the number of patients requiring imaging when used as part of a diagnostic pathway.", pdaLink: {url: "https://patient.info/chest-lungs/pulmonary-embolism-leaflet", text: "Patient.info: Pulmonary Embolism"}, scores: { '>4': { name: 'Score > 4 (PE Likely)', sens: 60, spec: 78, prev: 28 }, '<=4': { name: 'Score ≤ 4 (PE Unlikely)', sens: 83, spec: 46, prev: 6 } } },
-            'wells_dvt': { name: 'Wells\' Score for DVT', source: 'Wells et al., Lancet 2000', description: 'The Wells\' score predicts the pre-test probability of deep vein thrombosis (DVT). A higher score indicates a higher likelihood of DVT.', pdaLink: {url: "https://patient.info/heart-health/deep-vein-thrombosis-leaflet", text: "Patient.info: Deep Vein Thrombosis"}, scores: { '<=1': { name: 'Score ≤ 1 (DVT Unlikely)', sens: 85, spec: 55, prev: 20 } } },
+            'wells_pe': { name: 'Wells\' Score for PE', source: 'Wolf SJ et al. Ann Emerg Med. 2019', description: 'The Wells\' score helps determine the pre-test probability of a pulmonary embolism (PE). This models using the dichotomised score.', evidenceSummary: "The Wells' score is a clinical prediction rule used to estimate the pre-test probability of PE. It is used to guide further testing (e.g., D-dimer, CTPA). Studies have shown it can safely reduce the number of patients requiring imaging when used as part of a diagnostic pathway.", pdaLink: {url: "https://patient.info/signs-symptoms/breathlessness-and-breathing-difficulties-dyspnoea/pulmonary-embolism", text: "Patient.info: Pulmonary Embolism"}, scores: { '>4': { name: 'Score > 4 (PE Likely)', sens: 60, spec: 78, prev: 28 }, '<=4': { name: 'Score ≤ 4 (PE Unlikely)', sens: 83, spec: 46, prev: 6 } } },
+            'wells_dvt': { name: 'Wells\' Score for DVT', source: 'Wells et al., Lancet 2000', description: 'The Wells\' score predicts the pre-test probability of deep vein thrombosis (DVT). A higher score indicates a higher likelihood of DVT.', pdaLink: {url: "https://patient.info/heart-health/deep-vein-thrombosis-dvt", text: "Patient.info: Deep Vein Thrombosis"}, scores: { '<=1': { name: 'Score ≤ 1 (DVT Unlikely)', sens: 85, spec: 55, prev: 20 } } },
             'rosier': { name: 'ROSIER Score for Stroke', source: 'Nor et al., Lancet Neurol 2005', description: 'The ROSIER score helps differentiate stroke from stroke mimics. A positive result (>0) suggests a higher likelihood of stroke.', scores: { '>0': { name: 'Score > 0', sens: 93, spec: 70, prev: 65 } } },
             'sah': { name: 'Ottawa SAH Rule', source: 'Perry JJ et al., JAMA 2013', description: 'The Ottawa SAH Rule is a clinical decision rule to identify patients with acute headache who may have a subarachnoid haemorrhage (SAH) and require further investigation. A positive result (rule is triggered) suggests SAH is possible.', scores: { 'positive': { name: 'Positive Rule', sens: 99, spec: 15, prev: 2 } } },
             'cch': { name: 'Canadian CT Head Rule', source: 'Stiell et al., Lancet 2001', description: 'The Canadian CT Head Rule identifies adults with minor head injury who are at high risk for clinically important brain injury and need a CT scan. A positive result (rule is triggered) indicates a need for imaging.', scores: { 'positive': { name: 'Positive Rule', sens: 100, spec: 38, prev: 1 } } },
@@ -167,8 +167,8 @@
             'news2': { name: 'NEWS2 Score (Mortality Risk)', source: 'Royal College of Physicians, 2017', evidenceSummary: "The National Early Warning Score 2 (NEWS2) is a 'track and trigger' system for identifying acute illness and risk of deterioration. Higher scores are correlated with an increased risk of in-hospital mortality and ICU admission. A score ≥5 is a key threshold indicating urgent clinical review is needed.", scores: { 'by_risk': { name: 'Risk Level', points: { 'Low (Score 0-4)': 1.1, 'Medium (Score 5-6)': 5.4, 'High (Score ≥7)': 10.1 }, unit: '24-Hour Mortality Risk (%)' } } },
             'af_stroke': { name: 'Atrial Fibrillation (Stroke Risk)', source: 'NICE Guideline [NG196]', evidenceSummary: "Major trials (e.g., RE-LY, ROCKET-AF, ARISTOTLE) showed that modern anticoagulants (DOACs) are at least as effective as warfarin at preventing strokes in AF, and are significantly safer, causing fewer life-threatening bleeds inside the head.", pdaLink: {url: "https://www.nice.org.uk/guidance/ng196/resources/atrial-fibrillation-update-patient-decision-aid-pdf-6972381645", text: "NICE Patient Decision Aid for AF"}, scores: { 'chads_vasc': { name: 'CHA₂DS₂-VASc', points: {0:0.2, 1:0.6, 2:2.2, 3:3.2, 4:4.8, 5:7.2, 6:9.7, 7:11.2, 8:10.8, 9:12.2}, unit: 'Annual Stroke Risk (%)' } } },
             'af_bleed': { name: 'Atrial Fibrillation (Bleeding Risk)', source: "O'Brien et al., J Am Coll Cardiol 2015", scores: { 'orbit': { name: 'ORBIT', points: {0:0.8, 1:1.7, 2:2.8, 3:3.8, 4:5.2, 5:6.5, 6:6.9, 7:7.5}, unit: 'Annual Major Bleed Risk (%)' } } },
-            'pe_mortality': { name: 'Pulmonary Embolism (Mortality Risk)', source: 'Jiménez et al., Thorax 2010; Donzé et al. Arch Intern Med 2008', pdaLink: {url: "https://patient.info/chest-lungs/pulmonary-embolism-leaflet", text: "Patient.info: Pulmonary Embolism"}, scores: { 'sPESI': { name: 'sPESI (simplified)', points: { '0': 1.1, '≥1': 8.9 }, unit: '30-Day Mortality Risk (%)' }, 'PESI': { name: 'PESI Score', points: { 'I (≤65)': 1.1, 'II (66-85)': 3.5, 'III (86-105)': 6.5, 'IV (106-125)': 10.4, 'V (>125)': 24.5}, unit: '30-Day Mortality Risk (%)' } } },
-            'tia_stroke': { name: 'TIA (Subsequent Stroke Risk)', source: 'Perry et al., CMAJ 2011', pdaLink: {url: "https://patient.info/brain-nerves/transient-ischaemic-attack-tia-leaflet", text: "Patient.info: TIA"}, scores: { 'abcd2': { name: 'ABCD²', points: {'0-1':0, '2':1.3, '3':3.1, '4':6.0, '5':8.7, '6-7':12.2}, unit: '7-Day Stroke Risk (%)' } } },
+            'pe_mortality': { name: 'Pulmonary Embolism (Mortality Risk)', source: 'Jiménez et al., Thorax 2010; Donzé et al. Arch Intern Med 2008', pdaLink: {url: "https://patient.info/signs-symptoms/breathlessness-and-breathing-difficulties-dyspnoea/pulmonary-embolism", text: "Patient.info: Pulmonary Embolism"}, scores: { 'sPESI': { name: 'sPESI (simplified)', points: { '0': 1.1, '≥1': 8.9 }, unit: '30-Day Mortality Risk (%)' }, 'PESI': { name: 'PESI Score', points: { 'I (≤65)': 1.1, 'II (66-85)': 3.5, 'III (86-105)': 6.5, 'IV (106-125)': 10.4, 'V (>125)': 24.5}, unit: '30-Day Mortality Risk (%)' } } },
+            'tia_stroke': { name: 'TIA (Subsequent Stroke Risk)', source: 'Perry et al., CMAJ 2011', pdaLink: {url: "https://patient.info/brain-nerves/transient-ischaemic-attack-tia", text: "Patient.info: TIA"}, scores: { 'abcd2': { name: 'ABCD²', points: {'0-1':0, '2':1.3, '3':3.1, '4':6.0, '5':8.7, '6-7':12.2}, unit: '7-Day Stroke Risk (%)' } } },
         };
         
         const state = {
@@ -311,16 +311,14 @@
             const maxLogOdds = probToLogOdds(99.9);
             const logOddsRange = maxLogOdds - minLogOdds;
 
-            const probToY = p => {
-                if (p <= 0.1) return padding.top + plotHeight;
-                if (p >= 99.9) return padding.top;
-                const logOdds = probToLogOdds(p);
-                return padding.top + plotHeight * (1 - (logOdds - minLogOdds) / logOddsRange);
-            };
+            const logOddsToY = logOdds => padding.top + plotHeight * (1 - (logOdds - minLogOdds) / logOddsRange);
+            const probToY = p => logOddsToY(probToLogOdds(p));
             
             const lrToY = val => {
                 const logLR = Math.log(val);
-                const preLogOdds = probToLogOdds(preTestProb);
+                // The position of an LR tick is the midpoint between a hypothetical line.
+                // We can use any pre-test probability for this; 50% is convenient as its log-odds is 0.
+                const preLogOdds = probToLogOdds(50); 
                 const postLogOdds = preLogOdds + logLR;
                 
                 const yPre = logOddsToY(preLogOdds);
@@ -352,7 +350,7 @@
             if (postTestProb !== null) {
                 const yPre = probToY(preTestProb);
                 const yPost = probToY(postTestProb);
-                const yLr = lrToY(lr); 
+                const yLr = (yPre + yPost) / 2; // The intersection point is always the geometric midpoint
 
                 html += `<line x1="${axisX.pre}" y1="${yPre}" x2="${axisX.post}" y2="${yPost}" stroke="#ef4444" stroke-width="2" />`;
                 html += `<circle cx="${axisX.pre}" cy="${yPre}" r="4" fill="#ef4444" />`;
