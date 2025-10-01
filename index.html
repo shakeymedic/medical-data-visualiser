@@ -292,22 +292,39 @@
             const padding = { top: 50, right: 60, bottom: 40, left: 60 };
             const axisX = { pre: padding.left + 40, lr: svgWidth / 2, post: svgWidth - padding.right - 40 };
             const plotHeight = svgHeight - padding.top - padding.bottom;
-            const probTicks = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 30, 50, 70, 80, 90, 95, 98, 99];
-            const lrTicks = [1000, 200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01];
-            const minLogOdds = Math.log(0.001 / 0.999), maxLogOdds = Math.log(0.999 / 0.001);
+            const probTicks = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 30, 50, 70, 80, 90, 95, 98, 99, 99.9];
+            const lrTicks = [1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001];
+
+            const probToLogOdds = p => Math.log(p / (100 - p));
+
+            const minLogOdds = probToLogOdds(0.1);
+            const maxLogOdds = probToLogOdds(99.9);
+            const logOddsRange = maxLogOdds - minLogOdds;
+
             const probToY = p => {
-                if (p <= 0 || p >= 100) return padding.top + plotHeight;
-                const logOdds = Math.log(p / (100 - p));
-                return padding.top + plotHeight * (1 - (logOdds - minLogOdds) / (maxLogOdds - minLogOdds));
+                if (p <= 0.1) return padding.top + plotHeight;
+                if (p >= 99.9) return padding.top;
+                const logOdds = probToLogOdds(p);
+                return padding.top + plotHeight * (1 - (logOdds - minLogOdds) / logOddsRange);
             };
-            const minLogLR = Math.log(0.01), maxLogLR = Math.log(1000);
-            const lrToY = val => padding.top + plotHeight * (1 - (Math.log(val) - minLogLR) / (maxLogLR - minLogLR));
+            
+            const lrToY = val => {
+                if (val <= 0) return NaN;
+                const preOdds = preTestProb / (100 - preTestProb);
+                const postOdds = preOdds * val;
+                const postP = (postOdds / (1 + postOdds)) * 100;
+                
+                const yPre = probToY(preTestProb);
+                const yPost = probToY(postP);
+                return (yPre + yPost) / 2;
+            };
             
             let html = `<svg width="100%" viewBox="0 0 ${svgWidth} ${svgHeight}" class="mx-auto" style="font-family: sans-serif;">`;
             html += `<text x="${axisX.pre}" y="${padding.top - 15}" font-size="12" text-anchor="middle" font-weight="bold">Pre-Test Probability (%)</text>`;
             html += `<text x="${axisX.lr}" y="${padding.top - 15}" font-size="12" text-anchor="middle" font-weight="bold">Likelihood Ratio</text>`;
             html += `<text x="${axisX.post}" y="${padding.top - 15}" font-size="12" text-anchor="middle" font-weight="bold">Post-Test Probability (%)</text>`;
             ['pre', 'lr', 'post'].forEach(key => html += `<line x1="${axisX[key]}" y1="${padding.top}" x2="${axisX[key]}" y2="${svgHeight - padding.bottom}" stroke="#9ca3af" />`);
+            
             probTicks.forEach(p => {
                 const y = probToY(p);
                 html += `<line x1="${axisX.pre - 5}" y1="${y}" x2="${axisX.pre}" y2="${y}" stroke="#4b5563" />`;
@@ -315,14 +332,18 @@
                 html += `<line x1="${axisX.post}" y1="${y}" x2="${axisX.post + 5}" y2="${y}" stroke="#4b5563" />`;
                 html += `<text x="${axisX.post + 8}" y="${y + 4}" font-size="10" text-anchor="start">${p}</text>`;
             });
+            
             lrTicks.forEach(val => {
                 const y = lrToY(val);
                 html += `<line x1="${axisX.lr - 5}" y1="${y}" x2="${axisX.lr + 5}" y2="${y}" stroke="#4b5563" />`;
                 html += `<text x="${axisX.lr + 8}" y="${y + 4}" font-size="10">${val}</text>`;
             });
+
             if (postTestProb !== null) {
-                const yPre = probToY(preTestProb), yPost = probToY(postTestProb);
-                const yLr = yPre + (yPost - yPre) * (axisX.lr - axisX.pre) / (axisX.post - axisX.pre);
+                const yPre = probToY(preTestProb);
+                const yPost = probToY(postTestProb);
+                const yLr = lrToY(lr); 
+
                 html += `<line x1="${axisX.pre}" y1="${yPre}" x2="${axisX.post}" y2="${yPost}" stroke="#ef4444" stroke-width="2" />`;
                 html += `<circle cx="${axisX.pre}" cy="${yPre}" r="4" fill="#ef4444" />`;
                 html += `<circle cx="${axisX.post}" cy="${yPost}" r="4" fill="#ef4444" />`;
