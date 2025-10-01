@@ -133,14 +133,24 @@
         <p class="mt-1">All rights reserved. This tool is provided for free use in clinical practice. Reproduction, modification, or distribution is prohibited without express written consent.</p>
     </footer>
 
+    <div id="evidence-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden z-50 print-hidden">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full m-4">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 id="modal-title" class="text-xl font-semibold text-gray-800"></h3>
+                <button id="modal-close-btn" class="text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button>
+            </div>
+            <div id="modal-content" class="p-6 text-gray-700 text-sm leading-relaxed"></div>
+        </div>
+    </div>
+
     <script>
         // --- DATA AND STATE MANAGEMENT ---
         const diagScenarios = {
             'custom': { name: 'Custom values', description: 'Enter custom values for sensitivity, specificity, and prevalence to model a specific test.', scores: { 'custom': { name: 'Custom', sens: 95, spec: 90, prev: 10, source: null } } },
-            'heart': { name: 'HEART Score for 30-day MACE', source: 'Sixma et al. Neth Heart J 2008', description: 'The HEART score helps predict the 6-week risk of a Major Adverse Cardiac Event (MACE) in patients with chest pain. A higher score suggests a higher risk.', scores: { '0-3': { name: 'Score 0-3 (Low Risk)', sens: 97, spec: 50, prev: 18 }, '4-6': { name: 'Score 4-6 (Moderate Risk)', sens: 80, spec: 80, prev: 18 } } },
-            'alvarado': { name: 'Alvarado Score for Appendicitis', source: 'Ohle R et al. Acad Emerg Med. 2011', description: 'The Alvarado score is used to risk-stratify patients with suspected appendicitis.', scores: { '>=7': { name: 'Score ≥ 7 (High Risk)', sens: 82, spec: 81, prev: 35 }, '<5': { name: 'Score < 5 (Low Risk to rule out)', sens: 99, spec: 43, prev: 35 } } },
-            'wells_pe': { name: 'Wells\' Score for PE', source: 'Wolf SJ et al. Ann Emerg Med. 2019', description: 'The Wells\' score helps determine the pre-test probability of a pulmonary embolism (PE). This models using the dichotomised score.', scores: { '>4': { name: 'Score > 4 (PE Likely)', sens: 60, spec: 78, prev: 28 }, '<=4': { name: 'Score ≤ 4 (PE Unlikely)', sens: 83, spec: 46, prev: 6 } } },
-            'wells_dvt': { name: 'Wells\' Score for DVT', source: 'Wells et al., Lancet 2000', description: 'The Wells\' score predicts the pre-test probability of deep vein thrombosis (DVT). A higher score indicates a higher likelihood of DVT.', scores: { '<=1': { name: 'Score ≤ 1 (DVT Unlikely)', sens: 85, spec: 55, prev: 20 } } },
+            'heart': { name: 'HEART Score for 30-day MACE', source: 'Sixma et al. Neth Heart J 2008', description: 'The HEART score helps predict the 6-week risk of a Major Adverse Cardiac Event (MACE) in patients with chest pain. A higher score suggests a higher risk.', evidenceSummary: "The original HEART score validation study (Sixma et al., 2008) found that patients with scores of 0-3 had a very low risk (1.7%) of Major Adverse Cardiac Events (MACE) within 6 weeks, suggesting they may be safe for early discharge.", scores: { '0-3': { name: 'Score 0-3 (Low Risk)', sens: 97, spec: 50, prev: 18 }, '4-6': { name: 'Score 4-6 (Moderate Risk)', sens: 80, spec: 80, prev: 18 } } },
+            'alvarado': { name: 'Alvarado Score for Appendicitis', source: 'Ohle R et al. Acad Emerg Med. 2011', description: 'The Alvarado score is used to risk-stratify patients with suspected appendicitis.', evidenceSummary: "A 2011 meta-analysis showed that a score of less than 5 in adults has a very high sensitivity (99%) for ruling out appendicitis, making it a useful tool to reduce admissions and further imaging.", scores: { '>=7': { name: 'Score ≥ 7 (High Risk)', sens: 82, spec: 81, prev: 35 }, '<5': { name: 'Score < 5 (Low Risk to rule out)', sens: 99, spec: 43, prev: 35 } } },
+            'wells_pe': { name: 'Wells\' Score for PE', source: 'Wolf SJ et al. Ann Emerg Med. 2019', description: 'The Wells\' score helps determine the pre-test probability of a pulmonary embolism (PE). This models using the dichotomised score.', evidenceSummary: "The Wells' score is a clinical prediction rule used to estimate the pre-test probability of PE. It is used to guide further testing (e.g., D-dimer, CTPA). Studies have shown it can safely reduce the number of patients requiring imaging when used as part of a diagnostic pathway.", pdaLink: {url: "https://patient.info/chest-lungs/pulmonary-embolism", text: "Patient.info: Pulmonary Embolism"}, scores: { '>4': { name: 'Score > 4 (PE Likely)', sens: 60, spec: 78, prev: 28 }, '<=4': { name: 'Score ≤ 4 (PE Unlikely)', sens: 83, spec: 46, prev: 6 } } },
+            'wells_dvt': { name: 'Wells\' Score for DVT', source: 'Wells et al., Lancet 2000', description: 'The Wells\' score predicts the pre-test probability of deep vein thrombosis (DVT). A higher score indicates a higher likelihood of DVT.', pdaLink: {url: "https://patient.info/heart-health/deep-vein-thrombosis", text: "Patient.info: Deep Vein Thrombosis"}, scores: { '<=1': { name: 'Score ≤ 1 (DVT Unlikely)', sens: 85, spec: 55, prev: 20 } } },
             'rosier': { name: 'ROSIER Score for Stroke', source: 'Nor et al., Lancet Neurol 2005', description: 'The ROSIER score helps differentiate stroke from stroke mimics. A positive result (>0) suggests a higher likelihood of stroke.', scores: { '>0': { name: 'Score > 0', sens: 93, spec: 70, prev: 65 } } },
             'sah': { name: 'Ottawa SAH Rule', source: 'Perry JJ et al., JAMA 2013', description: 'The Ottawa SAH Rule is a clinical decision rule to identify patients with acute headache who may have a subarachnoid haemorrhage (SAH) and require further investigation. A positive result (rule is triggered) suggests SAH is possible.', scores: { 'positive': { name: 'Positive Rule', sens: 99, spec: 15, prev: 2 } } },
             'cch': { name: 'Canadian CT Head Rule', source: 'Stiell et al., Lancet 2001', description: 'The Canadian CT Head Rule identifies adults with minor head injury who are at high risk for clinically important brain injury and need a CT scan. A positive result (rule is triggered) indicates a need for imaging.', scores: { 'positive': { name: 'Positive Rule', sens: 100, spec: 38, prev: 1 } } },
@@ -153,12 +163,12 @@
         };
 
         const riskScenarios = {
-            'heart': { name: 'HEART Score (MACE Risk)', source: 'Sixma et al. Neth Heart J 2008', scores: { 'by_score': { name: 'Score', points: { '0': 1.7, '1': 2.5, '2': 4.1, '3': 7.7, '4': 12.3, '5': 20.2, '6': 26.2, '7': 42.9, '8': 75.0, '9': 75.0, '10': 75.0 }, unit: '6-Week MACE Risk (%)' } } },
-            'news2': { name: 'NEWS2 Score (Mortality Risk)', source: 'Royal College of Physicians, 2017', scores: { 'by_risk': { name: 'Risk Level', points: { 'Low (Score 0-4)': 1.1, 'Medium (Score 5-6)': 5.4, 'High (Score ≥7)': 10.1 }, unit: '24-Hour Mortality Risk (%)' } } },
-            'af_stroke': { name: 'Atrial Fibrillation (Stroke Risk)', source: 'NICE Guideline [NG196]', scores: { 'chads_vasc': { name: 'CHA₂DS₂-VASc', points: {0:0.2, 1:0.6, 2:2.2, 3:3.2, 4:4.8, 5:7.2, 6:9.7, 7:11.2, 8:10.8, 9:12.2}, unit: 'Annual Stroke Risk (%)' } } },
+            'heart': { name: 'HEART Score (MACE Risk)', source: 'Sixma et al. Neth Heart J 2008', evidenceSummary: "The original HEART score validation study (Sixma et al., 2008) found that patients with scores of 0-3 had a very low risk (1.7%) of Major Adverse Cardiac Events (MACE) within 6 weeks, suggesting they may be safe for early discharge.", scores: { 'by_score': { name: 'Score', points: { '0': 1.7, '1': 2.5, '2': 4.1, '3': 7.7, '4': 12.3, '5': 20.2, '6': 26.2, '7': 42.9, '8': 75.0, '9': 75.0, '10': 75.0 }, unit: '6-Week MACE Risk (%)' } } },
+            'news2': { name: 'NEWS2 Score (Mortality Risk)', source: 'Royal College of Physicians, 2017', evidenceSummary: "The National Early Warning Score 2 (NEWS2) is a 'track and trigger' system for identifying acute illness and risk of deterioration. Higher scores are correlated with an increased risk of in-hospital mortality and ICU admission. A score ≥5 is a key threshold indicating urgent clinical review is needed.", scores: { 'by_risk': { name: 'Risk Level', points: { 'Low (Score 0-4)': 1.1, 'Medium (Score 5-6)': 5.4, 'High (Score ≥7)': 10.1 }, unit: '24-Hour Mortality Risk (%)' } } },
+            'af_stroke': { name: 'Atrial Fibrillation (Stroke Risk)', source: 'NICE Guideline [NG196]', evidenceSummary: "Major trials (e.g., RE-LY, ROCKET-AF, ARISTOTLE) showed that modern anticoagulants (DOACs) are at least as effective as warfarin at preventing strokes in AF, and are significantly safer, causing fewer life-threatening bleeds inside the head.", pdaLink: {url: "https://www.nice.org.uk/guidance/ng196/resources/atrial-fibrillation-update-patient-decision-aid-pdf-6972381645", text: "NICE Patient Decision Aid for AF"}, scores: { 'chads_vasc': { name: 'CHA₂DS₂-VASc', points: {0:0.2, 1:0.6, 2:2.2, 3:3.2, 4:4.8, 5:7.2, 6:9.7, 7:11.2, 8:10.8, 9:12.2}, unit: 'Annual Stroke Risk (%)' } } },
             'af_bleed': { name: 'Atrial Fibrillation (Bleeding Risk)', source: "O'Brien et al., J Am Coll Cardiol 2015", scores: { 'orbit': { name: 'ORBIT', points: {0:0.8, 1:1.7, 2:2.8, 3:3.8, 4:5.2, 5:6.5, 6:6.9, 7:7.5}, unit: 'Annual Major Bleed Risk (%)' } } },
-            'pe_mortality': { name: 'Pulmonary Embolism (Mortality Risk)', source: 'Jiménez et al., Thorax 2010; Donzé et al. Arch Intern Med 2008', scores: { 'sPESI': { name: 'sPESI (simplified)', points: { '0': 1.1, '≥1': 8.9 }, unit: '30-Day Mortality Risk (%)' }, 'PESI': { name: 'PESI Score', points: { 'I (≤65)': 1.1, 'II (66-85)': 3.5, 'III (86-105)': 6.5, 'IV (106-125)': 10.4, 'V (>125)': 24.5}, unit: '30-Day Mortality Risk (%)' } } },
-            'tia_stroke': { name: 'TIA (Subsequent Stroke Risk)', source: 'Perry et al., CMAJ 2011', scores: { 'abcd2': { name: 'ABCD²', points: {'0-1':0, '2':1.3, '3':3.1, '4':6.0, '5':8.7, '6-7':12.2}, unit: '7-Day Stroke Risk (%)' } } },
+            'pe_mortality': { name: 'Pulmonary Embolism (Mortality Risk)', source: 'Jiménez et al., Thorax 2010; Donzé et al. Arch Intern Med 2008', pdaLink: {url: "https://patient.info/chest-lungs/pulmonary-embolism", text: "Patient.info: Pulmonary Embolism"}, scores: { 'sPESI': { name: 'sPESI (simplified)', points: { '0': 1.1, '≥1': 8.9 }, unit: '30-Day Mortality Risk (%)' }, 'PESI': { name: 'PESI Score', points: { 'I (≤65)': 1.1, 'II (66-85)': 3.5, 'III (86-105)': 6.5, 'IV (106-125)': 10.4, 'V (>125)': 24.5}, unit: '30-Day Mortality Risk (%)' } } },
+            'tia_stroke': { name: 'TIA (Subsequent Stroke Risk)', source: 'Perry et al., CMAJ 2011', pdaLink: {url: "https://patient.info/brain-nerves/transient-ischaemic-attack-tia", text: "Patient.info: TIA"}, scores: { 'abcd2': { name: 'ABCD²', points: {'0-1':0, '2':1.3, '3':3.1, '4':6.0, '5':8.7, '6-7':12.2}, unit: '7-Day Stroke Risk (%)' } } },
         };
         
         const state = {
@@ -309,13 +319,13 @@
             };
             
             const lrToY = val => {
-                if (val <= 0) return NaN;
-                const preOdds = preTestProb / (100 - preTestProb);
-                const postOdds = preOdds * val;
-                const postP = (postOdds / (1 + postOdds)) * 100;
+                const logLR = Math.log(val);
+                const preLogOdds = probToLogOdds(preTestProb);
+                const postLogOdds = preLogOdds + logLR;
                 
-                const yPre = probToY(preTestProb);
-                const yPost = probToY(postP);
+                const yPre = logOddsToY(preLogOdds);
+                const yPost = logOddsToY(postLogOdds);
+                
                 return (yPre + yPost) / 2;
             };
             
@@ -403,6 +413,18 @@
                 <div><label for="diag-prev" class="block text-sm font-medium text-gray-700 mb-2">Prevalence (%)</label><input id="diag-prev" type="number" value="${state.diagnostic.prevalence}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100"></div>
                 <div><label for="diag-pop" class="block text-sm font-medium text-gray-700 mb-2">Population</label><input id="diag-pop" type="number" value="${state.diagnostic.population}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="100" max="10000" step="100"></div>`;
             
+            let infoLinksHtml = '';
+            if (currentRule.evidenceSummary || currentRule.pdaLink) {
+                infoLinksHtml += '<div class="flex items-center gap-4 mt-4 print-hidden">';
+                if (currentRule.evidenceSummary) {
+                    infoLinksHtml += `<button id="diag-evidence-btn" class="text-sm text-blue-600 hover:underline">View Evidence Summary</button>`;
+                }
+                if (currentRule.pdaLink) {
+                    infoLinksHtml += `<a href="${currentRule.pdaLink.url}" target="_blank" rel="noopener" class="text-sm text-blue-600 hover:underline">${currentRule.pdaLink.text}</a>`;
+                }
+                infoLinksHtml += '</div>';
+            }
+
             const visuals = `
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900 mb-2">Results for: <span class="text-blue-900">${currentRule.name} (${currentScore.name})</span></h3>
@@ -412,6 +434,7 @@
                 <div class="mt-4 bg-blue-50 border-l-4 border-blue-500 p-4">
                     <p class="text-blue-800 text-sm">${currentRule.description}</p>
                 </div>
+                ${infoLinksHtml}
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900 mb-3 mt-6">Understanding the Four Outcomes</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -423,6 +446,12 @@
                 </div>`;
 
             renderTab('Diagnostic Test Performance', 'This shows how a test performs for a whole population.', inputs, visuals, scenarios);
+
+            if (currentRule.evidenceSummary) {
+                document.getElementById('diag-evidence-btn').addEventListener('click', () => {
+                    showEvidenceModal(`Evidence for ${currentRule.name}`, currentRule.evidenceSummary);
+                });
+            }
 
             const ruleSelect = document.getElementById('diag-rule-select');
             const scoreContainer = document.getElementById('diag-score-container');
@@ -480,7 +509,18 @@
         
         function renderRiskTab() {
             let riskCategoryOptions = '<option value="">Select a category...</option>';
-            for(const key in riskScenarios) { riskCategoryOptions += `<option value="${key}">${riskScenarios[key].name}</option>`; }
+            let selectedCategoryKey = '';
+            for(const key in riskScenarios) { 
+                // Find which category is selected based on current risk value
+                for(const scoreKey in riskScenarios[key].scores) {
+                    for(const pointKey in riskScenarios[key].scores[scoreKey].points) {
+                        if (riskScenarios[key].scores[scoreKey].points[pointKey] === state.risk.risk) {
+                            selectedCategoryKey = key;
+                        }
+                    }
+                }
+                riskCategoryOptions += `<option value="${key}" ${selectedCategoryKey === key ? 'selected' : ''}>${riskScenarios[key].name}</option>`; 
+            }
 
             const scenarios = `
                 <div class="p-4 bg-gray-50 border rounded-lg mb-8 print-hidden">
@@ -500,22 +540,36 @@
                 <div><label for="risk-percent" class="block text-sm font-medium text-gray-700 mb-2">Risk (%)</label><input id="risk-percent" type="number" value="${risk}" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="0" max="100" step="0.1"></div>
                 <div><label for="risk-pop" class="block text-sm font-medium text-gray-700 mb-2">Population Size</label><select id="risk-pop" class="w-full px-4 py-2 border border-gray-300 rounded-lg"><option value="100" ${population === 100 ? 'selected' : ''}>100</option><option value="1000" ${population === 1000 ? 'selected' : ''}>1000</option></select></div>`;
             
+            let infoLinksHtml = '';
+            const currentCategory = riskScenarios[selectedCategoryKey];
+            if(currentCategory && (currentCategory.evidenceSummary || currentCategory.pdaLink)) {
+                infoLinksHtml += '<div class="flex items-center gap-4 mt-4 print-hidden">';
+                if (currentCategory.evidenceSummary) {
+                    infoLinksHtml += `<button id="risk-evidence-btn" class="text-sm text-blue-600 hover:underline">View Evidence Summary</button>`;
+                }
+                if (currentCategory.pdaLink) {
+                    infoLinksHtml += `<a href="${currentCategory.pdaLink.url}" target="_blank" rel="noopener" class="text-sm text-blue-600 hover:underline">${currentCategory.pdaLink.text}</a>`;
+                }
+                infoLinksHtml += '</div>';
+            }
+
             const visuals = `<div id="risk-visuals-container" class="space-y-8">
                 <div><h3 class="text-lg font-semibold text-gray-900 mb-4">Icon Array: ${affected} out of ${population} affected</h3>${createIconArray(affected, population, 'bg-red-500', 'Affected')}</div>
                 <div><h3 class="text-lg font-semibold text-gray-900 mb-4">Stacked Bar</h3>${createStackedBar(affected, population, 'bg-red-500', 'Affected')}</div>
                 <div class="bg-blue-50 border-l-4 border-blue-500 p-4"><p class="text-blue-800"><strong>${risk.toFixed(1)}% risk</strong> means approximately <strong>${affected} out of every ${population} people</strong> may be affected.</p></div>
+                ${infoLinksHtml}
                 </div>`;
 
             renderTab('Absolute Risk Visualiser', 'Show risk as people affected out of a population.', inputs, visuals, scenarios);
 
+            if (currentCategory && currentCategory.evidenceSummary) {
+                document.getElementById('risk-evidence-btn').addEventListener('click', () => {
+                    showEvidenceModal(`Evidence for ${currentCategory.name}`, currentCategory.evidenceSummary);
+                });
+            }
+
             function updateRiskVisuals() {
-                const currentRisk = state.risk.risk;
-                const currentPop = state.risk.population;
-                const currentAffected = Math.round((currentRisk / 100) * currentPop);
-                 document.getElementById('risk-visuals-container').innerHTML = `
-                    <div><h3 class="text-lg font-semibold text-gray-900 mb-4">Icon Array: ${currentAffected} out of ${currentPop} affected</h3>${createIconArray(currentAffected, currentPop, 'bg-red-500', 'Affected')}</div>
-                    <div><h3 class="text-lg font-semibold text-gray-900 mb-4">Stacked Bar</h3>${createStackedBar(currentAffected, currentPop, 'bg-red-500', 'Affected')}</div>
-                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4"><p class="text-blue-800"><strong>${currentRisk.toFixed(1)}% risk</strong> means approximately <strong>${currentAffected} out of every ${currentPop} people</strong> may be affected.</p></div>`;
+                render(); // Just re-render the whole tab for simplicity on risk changes
             }
 
             document.getElementById('risk-percent').addEventListener('change', e => { 
@@ -527,8 +581,10 @@
                 updateRiskVisuals();
             });
 
-            document.getElementById('risk-cat-select').addEventListener('change', e => {
-                const categoryKey = e.target.value;
+            const riskCatSelect = document.getElementById('risk-cat-select');
+            
+            function handleRiskCategoryChange() {
+                const categoryKey = riskCatSelect.value;
                 const scoreContainer = document.getElementById('risk-score-inputs');
                 const sourceContainer = document.getElementById('risk-source');
                 scoreContainer.innerHTML = '';
@@ -556,13 +612,15 @@
                     const updateRiskFromCalc = () => {
                         const riskValue = score.points[pointsSelect.value];
                         state.risk.risk = riskValue;
-                        document.getElementById('risk-percent').value = riskValue;
                         updateRiskVisuals();
                     };
                     pointsSelect.addEventListener('change', updateRiskFromCalc);
                     updateRiskFromCalc();
                 });
-            });
+            }
+
+            riskCatSelect.addEventListener('change', handleRiskCategoryChange);
+            if (selectedCategoryKey) { handleRiskCategoryChange(); }
         }
         
         function renderReductionTab() {
@@ -630,6 +688,16 @@
 
         // --- CORE APP LOGIC ---
 
+        function showEvidenceModal(title, content) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-content').innerHTML = content;
+            document.getElementById('evidence-modal').classList.remove('hidden');
+        }
+
+        function hideEvidenceModal() {
+            document.getElementById('evidence-modal').classList.add('hidden');
+        }
+
         function switchTab(tabName) {
             state.activeTab = tabName;
             document.querySelectorAll('.tab-btn').forEach(button => {
@@ -662,6 +730,15 @@
                 button.addEventListener('click', () => switchTab(button.dataset.tab));
             });
             document.getElementById('generate-pdf-btn').addEventListener('click', generatePdf);
+            
+            const modal = document.getElementById('evidence-modal');
+            document.getElementById('modal-close-btn').addEventListener('click', hideEvidenceModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    hideEvidenceModal();
+                }
+            });
+
             switchTab('diagnostic');
         });
     </script>
