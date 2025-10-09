@@ -181,7 +181,7 @@
                 scenarioRule: 'custom',
                 scenarioScore: 'custom',
             },
-            risk: { risk: 5, population: 100 },
+            risk: { risk: 5, population: 100, selectedCategory: '', selectedScore: '', selectedPoint: '' },
             reduction: { baselineRisk: 10, treatmentRisk: 6, population: 100 },
             nnt: { baselineRisk: 10, treatmentRisk: 6 },
             relative: { baselineRisk: 10, relativeReduction: 50 },
@@ -315,16 +315,11 @@
             const probToY = p => logOddsToY(probToLogOdds(p));
             
             const lrToY = val => {
+                const centerY = logOddsToY(0); // y-coordinate for 50% probability (log-odds = 0)
                 const logLR = Math.log(val);
-                // The position of an LR tick is the midpoint between a hypothetical line.
-                // We can use any pre-test probability for this; 50% is convenient as its log-odds is 0.
-                const preLogOdds = probToLogOdds(50); 
-                const postLogOdds = preLogOdds + logLR;
-                
-                const yPre = logOddsToY(preLogOdds);
-                const yPost = logOddsToY(postLogOdds);
-                
-                return (yPre + yPost) / 2;
+                const scale = plotHeight / logOddsRange;
+                // For a proper Fagan nomogram, the LR axis uses the full scale, not half
+                return centerY - scale * logLR;
             };
             
             let html = `<svg width="100%" viewBox="0 0 ${svgWidth} ${svgHeight}" class="mx-auto" style="font-family: sans-serif;">`;
@@ -350,7 +345,11 @@
             if (postTestProb !== null) {
                 const yPre = probToY(preTestProb);
                 const yPost = probToY(postTestProb);
-                const yLr = (yPre + yPost) / 2; // The intersection point is always the geometric midpoint
+                // Calculate the actual LR from the probabilities
+                const preOdds = preTestProb / (100 - preTestProb);
+                const postOdds = postTestProb / (100 - postTestProb);
+                const actualLR = postOdds / preOdds;
+                const yLr = lrToY(actualLR);
 
                 html += `<line x1="${axisX.pre}" y1="${yPre}" x2="${axisX.post}" y2="${yPost}" stroke="#ef4444" stroke-width="2" />`;
                 html += `<circle cx="${axisX.pre}" cy="${yPre}" r="4" fill="#ef4444" />`;
@@ -507,17 +506,9 @@
         
         function renderRiskTab() {
             let riskCategoryOptions = '<option value="">Select a category...</option>';
-            let selectedCategoryKey = '';
             for(const key in riskScenarios) { 
-                // Find which category is selected based on current risk value
-                for(const scoreKey in riskScenarios[key].scores) {
-                    for(const pointKey in riskScenarios[key].scores[scoreKey].points) {
-                        if (riskScenarios[key].scores[scoreKey].points[pointKey] === state.risk.risk) {
-                            selectedCategoryKey = key;
-                        }
-                    }
-                }
-                riskCategoryOptions += `<option value="${key}" ${selectedCategoryKey === key ? 'selected' : ''}>${riskScenarios[key].name}</option>`; 
+                const isSelected = state.risk.selectedCategory === key;
+                riskCategoryOptions += `<option value="${key}" ${isSelected ? 'selected' : ''}>${riskScenarios[key].name}</option>`; 
             }
 
             const scenarios = `
@@ -539,7 +530,7 @@
                 <div><label for="risk-pop" class="block text-sm font-medium text-gray-700 mb-2">Population Size</label><select id="risk-pop" class="w-full px-4 py-2 border border-gray-300 rounded-lg"><option value="100" ${population === 100 ? 'selected' : ''}>100</option><option value="1000" ${population === 1000 ? 'selected' : ''}>1000</option></select></div>`;
             
             let infoLinksHtml = '';
-            const currentCategory = riskScenarios[selectedCategoryKey];
+            const currentCategory = state.risk.selectedCategory ? riskScenarios[state.risk.selectedCategory] : null;
             if(currentCategory && (currentCategory.evidenceSummary || currentCategory.pdaLink)) {
                 infoLinksHtml += '<div class="flex items-center gap-4 mt-4 print-hidden">';
                 if (currentCategory.evidenceSummary) {
@@ -583,42 +574,76 @@
             
             function handleRiskCategoryChange() {
                 const categoryKey = riskCatSelect.value;
+                state.risk.selectedCategory = categoryKey;
                 const scoreContainer = document.getElementById('risk-score-inputs');
                 const sourceContainer = document.getElementById('risk-source');
                 scoreContainer.innerHTML = '';
-                if (!categoryKey) { sourceContainer.innerHTML = ''; return; }
+                if (!categoryKey) { 
+                    state.risk.selectedScore = '';
+                    state.risk.selectedPoint = '';
+                    sourceContainer.innerHTML = ''; 
+                    return; 
+                }
 
                 const category = riskScenarios[categoryKey];
                 sourceContainer.innerHTML = `Data source: <em>${category.source}</em>`;
                 let scoreOptions = '<option value="">Select a score...</option>';
-                for(const key in category.scores) { scoreOptions += `<option value="${key}">${category.scores[key].name}</option>`; }
+                for(const key in category.scores) { 
+                    const isSelected = state.risk.selectedScore === key;
+                    scoreOptions += `<option value="${key}" ${isSelected ? 'selected' : ''}>${category.scores[key].name}</option>`; 
+                }
                 
                 scoreContainer.innerHTML = `<div><label for="risk-score-select" class="block text-sm font-medium text-gray-700 mb-2">Score</label><select id="risk-score-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg">${scoreOptions}</select></div><div id="risk-point-container"></div>`;
 
-                document.getElementById('risk-score-select').addEventListener('change', e2 => {
-                    const scoreKey = e2.target.value;
+                const riskScoreSelect = document.getElementById('risk-score-select');
+                
+                function handleScoreChange() {
+                    const scoreKey = riskScoreSelect.value;
+                    state.risk.selectedScore = scoreKey;
                     const pointContainer = document.getElementById('risk-point-container');
                     pointContainer.innerHTML = '';
-                    if (!scoreKey) return;
+                    if (!scoreKey) {
+                        state.risk.selectedPoint = '';
+                        return;
+                    }
                     
                     const score = category.scores[scoreKey];
                     let pointOptions = '';
-                    for(const point in score.points) { pointOptions += `<option value="${point}">${point}</option>`; }
+                    for(const point in score.points) { 
+                        const isSelected = state.risk.selectedPoint === point;
+                        pointOptions += `<option value="${point}" ${isSelected ? 'selected' : ''}>${point}</option>`; 
+                    }
                     pointContainer.innerHTML = `<div><label for="risk-points-select" class="block text-sm font-medium text-gray-700 mb-2">${score.name} Score/Class</label><select id="risk-points-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg">${pointOptions}</select></div>`;
                     
                     const pointsSelect = document.getElementById('risk-points-select');
                     const updateRiskFromCalc = () => {
+                        state.risk.selectedPoint = pointsSelect.value;
                         const riskValue = score.points[pointsSelect.value];
                         state.risk.risk = riskValue;
                         updateRiskVisuals();
                     };
                     pointsSelect.addEventListener('change', updateRiskFromCalc);
-                    updateRiskFromCalc();
-                });
+                    
+                    // If we have a selected point, trigger the update
+                    if (state.risk.selectedPoint) {
+                        updateRiskFromCalc();
+                    }
+                }
+                
+                riskScoreSelect.addEventListener('change', handleScoreChange);
+                
+                // If we have a selected score, trigger the score change handler
+                if (state.risk.selectedScore) {
+                    handleScoreChange();
+                }
             }
 
             riskCatSelect.addEventListener('change', handleRiskCategoryChange);
-            if (selectedCategoryKey) { handleRiskCategoryChange(); }
+            
+            // If we have a selected category, trigger the category change handler
+            if (state.risk.selectedCategory) { 
+                handleRiskCategoryChange(); 
+            }
         }
         
         function renderReductionTab() {
@@ -742,4 +767,3 @@
     </script>
 </body>
 </html>
-
