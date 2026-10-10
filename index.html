@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Medical Risk Communication Tool - WMEBEM</title>
     <meta name="description" content="Evidence-based medical risk communication tool for healthcare professionals to visualise diagnostic test performance, risk reduction, and biomarker context.">
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" xintegrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
         .print-only { display: none !important; }
@@ -30,6 +29,7 @@
         @media (max-width: 640px) { .population-grid { grid-template-columns: repeat(20, minmax(0, 1fr)) !important; } }
         @media (min-width: 641px) { .population-grid { grid-template-columns: repeat(40, minmax(0, 1fr)) !important; } }
     </style>
+    <link rel="stylesheet" href="tailwind.bundle.css">
 </head>
 <body class="bg-gray-50 flex flex-col min-h-screen">
     <div class="flex-grow">
